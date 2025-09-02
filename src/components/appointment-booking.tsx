@@ -1,0 +1,176 @@
+
+'use client';
+
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useToast } from '@/hooks/use-toast';
+import { Stethoscope, User, CalendarDays, Check, ArrowRight, ArrowLeft } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const services = [
+  { id: 1, name: 'Consultation', icon: Stethoscope },
+  { id: 2, name: 'Dental', icon: User },
+  { id: 3, name: 'Lab Test', icon: User },
+];
+
+const doctors = [
+  { id: 1, name: 'Dr. Evelyn Reed', specialty: 'Cybernetics', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
+  { id: 2, name: 'Dr. Kenji Tanaka', specialty: 'Genetics', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704e' },
+  { id: 3, name: 'Dr. Anya Sharma', specialty: 'Neurology', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704f' },
+];
+
+const timeSlots = [ '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00' ];
+
+export default function AppointmentBooking() {
+  const [step, setStep] = useState(1);
+  const [selectedService, setSelectedService] = useState<number | null>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<number | null>(null);
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const handleNextStep = () => {
+    if (step === 1 && !selectedService) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Please select a service.' });
+        return;
+    }
+    if (step === 2 && !selectedDoctor) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Please select a doctor.' });
+        return;
+    }
+    if (step === 3 && (!date || !selectedTime)) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Please select a date and time.' });
+        return;
+    }
+    setStep(s => s + 1);
+  };
+  const handlePrevStep = () => setStep(s => s - 1);
+  
+  const handleBooking = () => {
+    toast({
+      title: '🚀 Appointment Confirmed!',
+      description: 'See you soon.',
+    });
+    setStep(1);
+    setSelectedService(null);
+    setSelectedDoctor(null);
+    setDate(new Date());
+    setSelectedTime(null);
+  };
+
+  const getServiceName = () => services.find(s => s.id === selectedService)?.name;
+  const getDoctorName = () => doctors.find(d => d.id === selectedDoctor)?.name;
+
+  return (
+    <Card className="glass-pane w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <div className="flex justify-between items-center">
+            <CardTitle className="font-headline text-3xl flex items-center gap-2">
+              Book an Appointment
+            </CardTitle>
+            <div className="text-sm text-muted-foreground">Step {step} of 4</div>
+        </div>
+        <div className="w-full bg-primary/20 h-1 rounded-full mt-2">
+            <div className="bg-primary h-1 rounded-full transition-all duration-300" style={{width: `${(step/4)*100}%`}}></div>
+        </div>
+      </CardHeader>
+      <CardContent className="min-h-[400px]">
+        {step === 1 && (
+            <div>
+                <h3 className="mb-4 text-xl font-semibold text-center font-headline">1. Choose Service</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {services.map(service => (
+                        <Card key={service.id} onClick={() => setSelectedService(service.id)}
+                            className={cn('glass-pane text-center p-6 cursor-pointer group hover:neon-border transition-all', selectedService === service.id && 'neon-border')}>
+                            <div className="flex justify-center mb-4">
+                                <service.icon className="h-12 w-12 text-primary group-hover:neon-glow-primary transition-all"/>
+                            </div>
+                            <h4 className="text-lg font-bold font-headline">{service.name}</h4>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        )}
+        {step === 2 && (
+            <div>
+                <h3 className="mb-4 text-xl font-semibold text-center font-headline">2. Select Doctor</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {doctors.map(doctor => (
+                        <Card key={doctor.id} onClick={() => setSelectedDoctor(doctor.id)}
+                            className={cn('glass-pane p-4 cursor-pointer group hover:neon-border transition-all flex flex-col items-center text-center', selectedDoctor === doctor.id && 'neon-border')}>
+                            <Avatar className="w-20 h-20 mb-4 border-2 border-primary/50 group-hover:border-accent">
+                                <AvatarImage src={doctor.avatar} />
+                                <AvatarFallback>{doctor.name.substring(0,2)}</AvatarFallback>
+                            </Avatar>
+                            <h4 className="font-bold font-headline">{doctor.name}</h4>
+                            <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        )}
+        {step === 3 && (
+            <div className="grid md:grid-cols-2 gap-8">
+                 <div>
+                    <h3 className="mb-4 text-xl font-semibold text-center font-headline">3. Pick Date</h3>
+                    <div className="flex justify-center">
+                        <Calendar mode="single" selected={date} onSelect={setDate} className="rounded-md glass-pane"
+                        classNames={{ day_selected: 'bg-primary text-primary-foreground neon-glow-primary', day_today: 'text-accent neon-glow-accent' }}/>
+                    </div>
+                </div>
+                <div>
+                    <h3 className="mb-4 text-xl font-semibold text-center font-headline">4. Pick Time</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                        {timeSlots.map(time => (
+                            <Button key={time} variant={selectedTime === time ? 'default' : 'outline'} onClick={() => setSelectedTime(time)}
+                                    className={cn('neon-border', selectedTime === time && 'animate-pulse-glow')}>
+                                {time}
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        )}
+        {step === 4 && (
+            <div>
+                 <h3 className="mb-4 text-xl font-semibold text-center font-headline">5. Confirmation</h3>
+                 <Card className="glass-pane p-6">
+                    <CardTitle className="font-headline text-2xl mb-4">Appointment Details</CardTitle>
+                    <div className="space-y-3 text-muted-foreground">
+                        <p><strong>Service:</strong> {getServiceName()}</p>
+                        <p><strong>Doctor:</strong> {getDoctorName()}</p>
+                        <p><strong>Date:</strong> {date?.toDateString()}</p>
+                        <p><strong>Time:</strong> {selectedTime}</p>
+                    </div>
+                 </Card>
+            </div>
+        )}
+
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        {step > 1 && (
+            <Button variant="outline" onClick={handlePrevStep} className="neon-border">
+                <ArrowLeft className="mr-2"/>
+                Back
+            </Button>
+        )}
+        <div className="flex-grow"></div>
+        {step < 4 && (
+            <Button onClick={handleNextStep} className="btn-gradient animate-pulse-glow">
+                Next
+                <ArrowRight className="ml-2"/>
+            </Button>
+        )}
+        {step === 4 && (
+             <Button onClick={handleBooking} className="btn-gradient animate-pulse-glow">
+                <Check className="mr-2"/>
+                Confirm Booking
+            </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+}
