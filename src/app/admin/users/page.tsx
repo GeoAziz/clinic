@@ -9,9 +9,11 @@ import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateUserDialog } from "@/components/admin/create-user-dialog";
+import { EditUserDialog } from "@/components/admin/edit-user-dialog";
+import { DeactivateUserDialog } from "@/components/admin/deactivate-user-dialog";
 
 
-type User = {
+export type User = {
     id: string;
     name: string;
     email: string;
@@ -20,7 +22,7 @@ type User = {
     lastLogin: string;
 };
 
-const UserTable = ({ users }: { users: User[] }) => (
+const UserTable = ({ users, onUserChanged }: { users: User[], onUserChanged: () => void }) => (
     <Table>
         <TableHeader>
             <TableRow>
@@ -55,8 +57,12 @@ const UserTable = ({ users }: { users: User[] }) => (
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
                                 <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Edit</DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
+                                <EditUserDialog user={user} onUserUpdated={onUserChanged}>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Edit</DropdownMenuItem>
+                                </EditUserDialog>
+                                <DeactivateUserDialog user={user} onUserDeactivated={onUserChanged}>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Deactivate</DropdownMenuItem>
+                                </DeactivateUserDialog>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </TableCell>
@@ -71,7 +77,6 @@ export default function UserManagementPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -92,8 +97,8 @@ export default function UserManagementPage() {
         fetchUsers();
     }, []);
 
-    const onUserCreated = () => {
-        // Re-fetch users list after a new user is created
+    const onUserChanged = () => {
+        // Re-fetch users list after a user is created/updated/deactivated
         fetchUsers();
     }
 
@@ -112,7 +117,7 @@ export default function UserManagementPage() {
                         <CardTitle className="font-headline text-3xl">User Management</CardTitle>
                         <CardDescription>Manage all users in the Zizo_HealthVerse system.</CardDescription>
                     </div>
-                    <CreateUserDialog onUserCreated={onUserCreated} />
+                    <CreateUserDialog onUserCreated={onUserChanged} />
                 </div>
             </CardHeader>
             <CardContent>
@@ -125,21 +130,21 @@ export default function UserManagementPage() {
                     <TabsContent value="patients">
                         <Card className="glass-pane mt-4">
                             <CardContent className="p-0">
-                                <UserTable users={patients} />
+                                <UserTable users={patients} onUserChanged={onUserChanged} />
                             </CardContent>
                         </Card>
                     </TabsContent>
                     <TabsContent value="staff">
                          <Card className="glass-pane mt-4">
                             <CardContent className="p-0">
-                                <UserTable users={staff} />
+                                <UserTable users={staff} onUserChanged={onUserChanged} />
                             </CardContent>
                         </Card>
                     </TabsContent>
                     <TabsContent value="admins">
                          <Card className="glass-pane mt-4">
                             <CardContent className="p-0">
-                                <UserTable users={admins} />
+                                <UserTable users={admins} onUserChanged={onUserChanged} />
                             </CardContent>
                         </Card>
                     </TabsContent>

@@ -101,3 +101,85 @@ export async function createUser(prevState: any, formData: FormData) {
         };
     }
 }
+
+
+const updateUserSchema = z.object({
+  uid: z.string().min(1, 'User ID is required.'),
+  fullName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }).optional(),
+  role: z.enum(['patient', 'doctor', 'receptionist', 'admin']).optional(),
+});
+
+export async function updateUser(prevState: any, formData: FormData) {
+  const validatedFields = updateUserSchema.safeParse({
+    uid: formData.get('uid'),
+    fullName: formData.get('fullName'),
+    role: formData.get('role'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      message: 'Invalid input.',
+      error: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+
+  const { uid, fullName, role } = validatedFields.data;
+  const updates: any = {};
+  if (fullName) updates.displayName = fullName;
+  if (role) updates.role = role;
+
+
+  try {
+    const { adminAuth, adminDb } = await getAdmin();
+    if (!adminAuth || !adminDb) {
+      throw new Error('Firebase Admin SDK not initialized.');
+    }
+
+    // Update Auth
+    if (fullName) {
+        await adminAuth.updateUser(uid, { displayName: fullName });
+    }
+    if (role) {
+        await adminAuth.setCustomUserClaims(uid, { role });
+    }
+    
+    // Update Firestore
+    await adminDb.collection('users').doc(uid).update(updates);
+    
+    return { message: 'User updated successfully!' };
+  } catch (error: any) {
+    console.error('Error updating user:', error);
+    return { message: 'An unexpected error occurred.', error: { _form: [error.message] } };
+  }
+}
+
+const deactivateUserSchema = z.object({
+    uid: z.string().min(1, 'User ID is required.'),
+});
+
+export async function deactivateUser(prevState: any, formData: FormData) {
+    const validatedFields = deactivateUserSchema.safeParse({
+        uid: formData.get('uid'),
+    });
+
+    if (!validatedFields.success) {
+        return { message: 'Invalid User ID.' };
+    }
+    
+    const { uid } = validatedFields.data;
+
+    try {
+        const { adminAuth, adminDb } = await getAdmin();
+        if (!adminAuth || !adminDb) {
+            throw new Error('Firebase Admin SDK not initialized.');
+        }
+
+        await adminAuth.updateUser(uid, { disabled: true });
+        await adminDb.collection('users').doc(uid).update({ status: 'Inactive' });
+
+        return { message: 'User deactivated successfully!' };
+    } catch (error: any) {
+        console.error('Error deactivating user:', error);
+        return { message: 'An unexpected error occurred.' };
+    }
+}
