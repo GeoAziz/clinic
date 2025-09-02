@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CreateUserDialog } from "@/components/admin/create-user-dialog";
 
 
 type User = {
@@ -17,11 +19,6 @@ type User = {
     status: string;
     lastLogin: string;
 };
-
-
-// ...existing code...
-
-// Removed duplicate default export function AdminUsersPage
 
 const UserTable = ({ users }: { users: User[] }) => (
     <Table>
@@ -69,41 +66,39 @@ const UserTable = ({ users }: { users: User[] }) => (
     </Table>
 );
 
-// This function will be removed as we are moving to a client-side fetch
-async function fetchUsersFromApi(): Promise<User[]> {
-  const res = await fetch('/api/admin/users');
-  if (!res.ok) {
-    throw new Error('Failed to fetch users');
-  }
-  return res.json();
-}
-
-
-// ...existing code...
 
 export default function UserManagementPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const fetchUsers = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/admin/users');
+            if (!res.ok) throw new Error('Failed to fetch users');
+            const data = await res.json();
+            setUsers(data);
+        } catch (err: any) {
+            setError(err.message || 'Error fetching users');
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     useEffect(() => {
-        async function fetchUsers() {
-            try {
-                const res = await fetch('/api/admin/users');
-                if (!res.ok) throw new Error('Failed to fetch users');
-                const data = await res.json();
-                setUsers(data);
-            } catch (err: any) {
-                setError(err.message || 'Error fetching users');
-            } finally {
-                setLoading(false);
-            }
-        }
         fetchUsers();
     }, []);
 
+    const onUserCreated = () => {
+        // Re-fetch users list after a new user is created
+        fetchUsers();
+    }
+
     const patients = users.filter((user: User) => user.role === 'patient');
-    const staff = users.filter((user: User) => user.role !== 'patient' && user.role !== 'admin');
+    const staff = users.filter((user: User) => ['doctor', 'receptionist'].includes(user.role));
     const admins = users.filter((user: User) => user.role === 'admin');
 
     if (loading) return <div>Loading users...</div>;
@@ -117,7 +112,7 @@ export default function UserManagementPage() {
                         <CardTitle className="font-headline text-3xl">User Management</CardTitle>
                         <CardDescription>Manage all users in the Zizo_HealthVerse system.</CardDescription>
                     </div>
-                    <Button className="btn-gradient animate-pulse-glow">Add New User</Button>
+                    <CreateUserDialog onUserCreated={onUserCreated} />
                 </div>
             </CardHeader>
             <CardContent>
