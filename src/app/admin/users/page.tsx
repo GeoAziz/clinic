@@ -69,27 +69,13 @@ const UserTable = ({ users }: { users: User[] }) => (
     </Table>
 );
 
-
-async function getUsers(): Promise<User[]> {
-    // Replace this mock with your actual data fetching logic
-    return [
-        {
-            id: "1",
-            name: "John Doe",
-            email: "john@example.com",
-            role: "patient",
-            status: "Active",
-            lastLogin: "2024-06-01",
-        },
-        {
-            id: "2",
-            name: "Jane Smith",
-            email: "jane@example.com",
-            role: "staff",
-            status: "Online",
-            lastLogin: "2024-06-02",
-        },
-    ];
+// This function will be removed as we are moving to a client-side fetch
+async function fetchUsersFromApi(): Promise<User[]> {
+  const res = await fetch('/api/admin/users');
+  if (!res.ok) {
+    throw new Error('Failed to fetch users');
+  }
+  return res.json();
 }
 
 
@@ -117,7 +103,8 @@ export default function UserManagementPage() {
     }, []);
 
     const patients = users.filter((user: User) => user.role === 'patient');
-    const staff = users.filter((user: User) => user.role !== 'patient');
+    const staff = users.filter((user: User) => user.role !== 'patient' && user.role !== 'admin');
+    const admins = users.filter((user: User) => user.role === 'admin');
 
     if (loading) return <div>Loading users...</div>;
     if (error) return <div>Error: {error}</div>;
@@ -135,9 +122,10 @@ export default function UserManagementPage() {
             </CardHeader>
             <CardContent>
                 <Tabs defaultValue="patients">
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="patients">Patients</TabsTrigger>
                         <TabsTrigger value="staff">Staff</TabsTrigger>
+                        <TabsTrigger value="admins">Admins</TabsTrigger>
                     </TabsList>
                     <TabsContent value="patients">
                         <Card className="glass-pane mt-4">
@@ -150,6 +138,13 @@ export default function UserManagementPage() {
                          <Card className="glass-pane mt-4">
                             <CardContent className="p-0">
                                 <UserTable users={staff} />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="admins">
+                         <Card className="glass-pane mt-4">
+                            <CardContent className="p-0">
+                                <UserTable users={admins} />
                             </CardContent>
                         </Card>
                     </TabsContent>

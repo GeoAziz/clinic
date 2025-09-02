@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         email: data.email,
         role: data.role,
         status: 'Active', // Placeholder
-        lastLogin: 'N/A', // Placeholder
+        lastLogin: data.lastLogin ? new Date(data.lastLogin.seconds * 1000).toLocaleDateString() : 'N/A',
       };
     });
     return res.status(200).json(users);
