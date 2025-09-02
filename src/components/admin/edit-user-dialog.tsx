@@ -7,7 +7,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
@@ -43,9 +42,8 @@ function SubmitButton({ pending }: { pending: boolean }) {
   );
 }
 
-export function EditUserDialog({ user, onUserUpdated, children }: { user: User; onUserUpdated: () => void; children: React.ReactNode }) {
+export function EditUserDialog({ user, onUserUpdated, isOpen, onOpenChange }: { user: User; onUserUpdated: () => void; isOpen: boolean; onOpenChange: (open: boolean) => void }) {
   const [state, formAction] = useActionState(updateUser, initialState);
-  const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
   
   const initialForm: UserFormFields = {
@@ -76,7 +74,7 @@ export function EditUserDialog({ user, onUserUpdated, children }: { user: User; 
             description: state.message,
          });
          onUserUpdated();
-         setIsOpen(false);
+         onOpenChange(false);
       } else {
          toast({
             variant: 'destructive',
@@ -86,7 +84,7 @@ export function EditUserDialog({ user, onUserUpdated, children }: { user: User; 
       }
       setPending(false);
     }
-  }, [state, toast, onUserUpdated]);
+  }, [state, toast, onUserUpdated, onOpenChange]);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
@@ -96,7 +94,7 @@ export function EditUserDialog({ user, onUserUpdated, children }: { user: User; 
       state.message = '';
       setPending(false);
     }
-    setIsOpen(open);
+    onOpenChange(open);
   };
   
   const handleClientSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -110,7 +108,6 @@ export function EditUserDialog({ user, onUserUpdated, children }: { user: User; 
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px] glass-pane" aria-modal="true" role="dialog">
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>

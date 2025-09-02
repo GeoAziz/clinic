@@ -9,7 +9,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useActionState, useEffect, useState } from 'react';
@@ -33,9 +32,8 @@ function SubmitButton({ pending }: { pending: boolean }) {
     )
 }
 
-export function DeactivateUserDialog({ user, onUserDeactivated, children }: { user: User; onUserDeactivated: () => void; children: React.ReactNode }) {
+export function DeactivateUserDialog({ user, onUserDeactivated, isOpen, onOpenChange }: { user: User; onUserDeactivated: () => void; isOpen: boolean; onOpenChange: (open: boolean) => void; }) {
   const [state, formAction] = useActionState(deactivateUser, initialState);
-  const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
   const [pending, setPending] = useState(false);
 
@@ -47,7 +45,7 @@ export function DeactivateUserDialog({ user, onUserDeactivated, children }: { us
           description: state.message,
         });
         onUserDeactivated();
-        setIsOpen(false);
+        onOpenChange(false);
       } else {
         toast({
           variant: 'destructive',
@@ -57,7 +55,7 @@ export function DeactivateUserDialog({ user, onUserDeactivated, children }: { us
       }
       setPending(false);
     }
-  }, [state, toast, onUserDeactivated]);
+  }, [state, toast, onUserDeactivated, onOpenChange]);
   
   const handleFormAction = (formData: FormData) => {
     setPending(true);
@@ -65,8 +63,7 @@ export function DeactivateUserDialog({ user, onUserDeactivated, children }: { us
   }
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
+    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent className="glass-pane">
         <form action={handleFormAction}>
             <input type="hidden" name="uid" value={user.id} />
@@ -79,7 +76,7 @@ export function DeactivateUserDialog({ user, onUserDeactivated, children }: { us
             </AlertDialogHeader>
             <AlertDialogFooter className="mt-4">
             <AlertDialogCancel asChild>
-                <Button variant="outline" disabled={pending}>Cancel</Button>
+                <Button variant="outline" disabled={pending} onClick={() => onOpenChange(false)}>Cancel</Button>
             </AlertDialogCancel>
             <SubmitButton pending={pending} />
             </AlertDialogFooter>

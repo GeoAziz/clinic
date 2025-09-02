@@ -22,55 +22,84 @@ export type User = {
     lastLogin: string;
 };
 
-const UserTable = ({ users, onUserChanged }: { users: User[], onUserChanged: () => void }) => (
-    <Table>
-        <TableHeader>
-            <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Login</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-        </TableHeader>
-        <TableBody>
-            {users.map(user => (
-                <TableRow key={user.id}>
-                    <TableCell>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
-                    </TableCell>
-                    <TableCell>{user.role}</TableCell>
-                    <TableCell>
-                        <Badge variant={user.status === 'Active' || user.status === 'Online' ? 'default' : 'secondary'}
-                            className={user.status === 'Active' || user.status === 'Online' ? 'bg-green-500/20 text-green-300 border-green-500/50' : ''}>
-                            {user.status}
-                        </Badge>
-                    </TableCell>
-                    <TableCell>{user.lastLogin}</TableCell>
-                    <TableCell className="text-right">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <EditUserDialog user={user} onUserUpdated={onUserChanged}>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Edit</DropdownMenuItem>
-                                </EditUserDialog>
-                                <DeactivateUserDialog user={user} onUserDeactivated={onUserChanged}>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Deactivate</DropdownMenuItem>
-                                </DeactivateUserDialog>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </TableCell>
-                </TableRow>
-            ))}
-        </TableBody>
-    </Table>
-);
+const UserTable = ({ users, onUserChanged }: { users: User[], onUserChanged: () => void }) => {
+    const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [deactivatingUser, setDeactivatingUser] = useState<User | null>(null);
+
+    return (
+        <>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Last Login</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {users.map(user => (
+                        <TableRow key={user.id}>
+                            <TableCell>
+                                <div className="font-medium">{user.name}</div>
+                                <div className="text-sm text-muted-foreground">{user.email}</div>
+                            </TableCell>
+                            <TableCell>{user.role}</TableCell>
+                            <TableCell>
+                                <Badge variant={user.status === 'Active' || user.status === 'Online' ? 'default' : 'secondary'}
+                                    className={user.status === 'Active' || user.status === 'Online' ? 'bg-green-500/20 text-green-300 border-green-500/50' : ''}>
+                                    {user.status}
+                                </Badge>
+                            </TableCell>
+                            <TableCell>{user.lastLogin}</TableCell>
+                            <TableCell className="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuItem>View Details</DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => setEditingUser(user)}>
+                                            Edit
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => setDeactivatingUser(user)} className="text-destructive">
+                                            Deactivate
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+            {editingUser && (
+                <EditUserDialog
+                    user={editingUser}
+                    isOpen={!!editingUser}
+                    onOpenChange={(isOpen) => !isOpen && setEditingUser(null)}
+                    onUserUpdated={() => {
+                        setEditingUser(null);
+                        onUserChanged();
+                    }}
+                />
+            )}
+            {deactivatingUser && (
+                 <DeactivateUserDialog
+                    user={deactivatingUser}
+                    isOpen={!!deactivatingUser}
+                    onOpenChange={(isOpen) => !isOpen && setDeactivatingUser(null)}
+                    onUserDeactivated={() => {
+                        setDeactivatingUser(null);
+                        onUserChanged();
+                    }}
+                />
+            )}
+        </>
+    );
+};
 
 
 export default function UserManagementPage() {
