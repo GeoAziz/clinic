@@ -1,14 +1,16 @@
 
+export const runtime = 'nodejs';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { adminDb } from '../../../src/lib/firebase/admin';
+import { getAdmin } from '../../../src/lib/firebase/admin';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!adminDb) {
-    return res.status(500).json({ error: 'Firebase Admin DB is not initialized.' });
-  }
   try {
+    const { adminDb } = await getAdmin();
+    if (!adminDb) {
+      return res.status(500).json({ error: 'Firebase Admin DB is not initialized.' });
+    }
     const usersSnapshot = await adminDb.collection('users').get();
-    const users = usersSnapshot.docs.map(doc => {
+    const users = usersSnapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
       const data = doc.data();
       return {
         id: doc.id,
