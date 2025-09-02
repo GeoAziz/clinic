@@ -31,7 +31,7 @@ export default function AboutPage() {
         <MainLayout>
             <div className="container mx-auto py-16 px-4">
                 <section id="hero" className="relative text-center rounded-xl overflow-hidden mb-16">
-                     <Image src="https://picsum.photos/1200/400" layout="fill" objectFit="cover" alt="Holographic Hospital Skyline" className="opacity-20" data-ai-hint="holographic skyline" />
+                     <Image src="https://picsum.photos/1200/400" fill style={{ objectFit: 'cover' }} alt="Holographic Hospital Skyline" className="opacity-20" data-ai-hint="holographic skyline" />
                      <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
                     <div className="relative p-12 md:p-24">
                         <h1 className="text-4xl md:text-6xl font-bold font-headline neon-glow">Where Technology Meets Care</h1>

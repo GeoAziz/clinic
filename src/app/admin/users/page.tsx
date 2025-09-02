@@ -1,3 +1,5 @@
+"use client";
+import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -5,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { adminDb } from '@/lib/firebase/admin';
+
 
 type User = {
     id: string;
@@ -16,30 +18,10 @@ type User = {
     lastLogin: string;
 };
 
-async function getUsers(): Promise<User[]> {
-    if (!adminDb) {
-        console.error("Firebase Admin DB is not initialized.");
-        return [];
-    }
-    try {
-        const usersSnapshot = await adminDb.collection('users').get();
-        const users = usersSnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                name: data.displayName || data.fullName || 'N/A',
-                email: data.email,
-                role: data.role,
-                status: 'Active', // Placeholder
-                lastLogin: 'N/A', // Placeholder
-            };
-        });
-        return users;
-    } catch(error) {
-        console.error("Error fetching users:", error);
-        return [];
-    }
-}
+
+// ...existing code...
+
+// Removed duplicate default export function AdminUsersPage
 
 const UserTable = ({ users }: { users: User[] }) => (
     <Table>
@@ -88,10 +70,57 @@ const UserTable = ({ users }: { users: User[] }) => (
 );
 
 
-export default async function UserManagementPage() {
-    const users = await getUsers();
-    const patients = users.filter(user => user.role === 'patient');
-    const staff = users.filter(user => user.role !== 'patient');
+async function getUsers(): Promise<User[]> {
+    // Replace this mock with your actual data fetching logic
+    return [
+        {
+            id: "1",
+            name: "John Doe",
+            email: "john@example.com",
+            role: "patient",
+            status: "Active",
+            lastLogin: "2024-06-01",
+        },
+        {
+            id: "2",
+            name: "Jane Smith",
+            email: "jane@example.com",
+            role: "staff",
+            status: "Online",
+            lastLogin: "2024-06-02",
+        },
+    ];
+}
+
+
+// ...existing code...
+
+export default function UserManagementPage() {
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function fetchUsers() {
+            try {
+                const res = await fetch('/api/admin/users');
+                if (!res.ok) throw new Error('Failed to fetch users');
+                const data = await res.json();
+                setUsers(data);
+            } catch (err: any) {
+                setError(err.message || 'Error fetching users');
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchUsers();
+    }, []);
+
+    const patients = users.filter((user: User) => user.role === 'patient');
+    const staff = users.filter((user: User) => user.role !== 'patient');
+
+    if (loading) return <div>Loading users...</div>;
+    if (error) return <div>Error: {error}</div>;
 
     return (
         <Card className="glass-pane w-full">

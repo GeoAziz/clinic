@@ -27,7 +27,7 @@ export default function ContactPage() {
         <MainLayout>
             <div className="container mx-auto py-16 px-4">
                 <section id="hero" className="relative text-center rounded-xl overflow-hidden mb-16 h-64">
-                    <Image src="https://picsum.photos/1200/300" layout="fill" objectFit="cover" alt="Holographic Map" className="opacity-20" data-ai-hint="holographic map" />
+                    <Image src="https://picsum.photos/1200/300" fill style={{ objectFit: 'cover' }} alt="Holographic Map" className="opacity-20" data-ai-hint="holographic map" />
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
                     <div className="relative flex flex-col justify-center items-center h-full">
                         <h1 className="text-4xl md:text-6xl font-bold font-headline neon-glow">Get In Touch</h1>

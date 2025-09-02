@@ -12,7 +12,7 @@ import MainLayout from '@/components/main-layout';
 const HeroSection = () => (
   <section className="relative py-32 md:py-48 text-center overflow-hidden">
      <div className="absolute inset-0 z-0 opacity-20">
-        <Image src="https://picsum.photos/1200/800" alt="Holographic Globe" layout="fill" objectFit="cover" data-ai-hint="holographic globe" />
+  <Image src="https://picsum.photos/1200/800" alt="Holographic Globe" fill style={{ objectFit: 'cover' }} data-ai-hint="holographic globe" />
         <div className="absolute inset-0 bg-gradient-to-b from-background via-background/50 to-background"></div>
       </div>
     <div className="container mx-auto px-4 relative z-10">
