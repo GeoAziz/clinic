@@ -4,7 +4,7 @@ import { z } from 'zod';
 const userSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
   email: z.string().email('Invalid email address.'),
-  role: z.enum(['patient', 'doctor', 'receptionist', 'admin'], {
+  role: z.enum(['patient', 'doctor', 'nurse', 'receptionist', 'admin'], {
     errorMap: () => ({ message: 'Role is required.' })
   }),
 });

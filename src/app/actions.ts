@@ -36,10 +36,11 @@ export async function checkSymptoms(prevState: any, formData: FormData) {
 const createUserSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
   fullName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
-  role: z.enum(['patient', 'doctor', 'receptionist', 'admin']),
+  role: z.enum(['patient', 'doctor', 'nurse', 'receptionist', 'admin']),
 });
 
 export async function createUser(prevState: any, formData: FormData) {
+    console.log('Server Action: createUser started');
     const validatedFields = createUserSchema.safeParse({
         email: formData.get('email'),
         fullName: formData.get('fullName'),
@@ -47,6 +48,7 @@ export async function createUser(prevState: any, formData: FormData) {
     });
 
     if (!validatedFields.success) {
+        console.log('Server Action: Validation failed', validatedFields.error);
         return {
             error: validatedFields.error.flatten().fieldErrors,
             message: 'Invalid input.',
@@ -54,6 +56,7 @@ export async function createUser(prevState: any, formData: FormData) {
     }
 
     const { email, fullName, role } = validatedFields.data;
+    console.log('Server Action: Creating user with data:', { email, fullName, role });
 
     try {
         const { adminAuth, adminDb } = await getAdmin();
@@ -61,30 +64,75 @@ export async function createUser(prevState: any, formData: FormData) {
             throw new Error('Firebase Admin SDK not initialized.');
         }
 
+        // Step 1: Create Firebase Auth User
+        console.log('Server Action: Creating Firebase Auth user...');
         const userRecord = await adminAuth.createUser({
             email,
-            emailVerified: false, // User will verify via password reset link
+            emailVerified: false,
             displayName: fullName,
             disabled: false,
         });
+        console.log('Server Action: User created in Firebase Auth', userRecord.uid);
 
+        // Step 2: Set Role Claims
+        console.log('Server Action: Setting custom claims...');
         await adminAuth.setCustomUserClaims(userRecord.uid, { role });
 
-        await adminDb.collection('users').doc(userRecord.uid).set({
+        // Step 3: Create User Profile
+        console.log('Server Action: Creating user profile in Firestore...');
+        const userData = {
             uid: userRecord.uid,
             email,
             displayName: fullName,
             role,
             createdAt: new Date().toISOString(),
+            status: 'Pending',
+            lastLogin: null,
+        };
+        await adminDb.collection('users').doc(userRecord.uid).set(userData);
+
+    // Step 4: Create Role-Specific Profile if needed
+    if (role === 'doctor') {
+      console.log('Server Action: Creating doctor profile...');
+      await adminDb.collection('doctors').doc(userRecord.uid).set({
+        ...userData,
+        specialty: '',
+        department: '',
+        consultationFee: 0,
+        availability: [],
+      });
+    }
+    if (role === 'nurse') {
+      console.log('Server Action: Creating nurse profile...');
+      await adminDb.collection('nurses').doc(userRecord.uid).set({
+        ...userData,
+        assignedPatients: [],
+        schedule: [],
+        department: '',
+      });
+    }
+
+        // Step 5: Generate Secure Setup Link
+        console.log('Server Action: Generating password reset link...');
+        const link = await adminAuth.generatePasswordResetLink(email);
+        console.log('Server Action: Setup link generated successfully');
+
+        // Store the reset link in a separate collection
+        await adminDb.collection('userSetupLinks').doc(userRecord.uid).set({
+            userId: userRecord.uid,
+            email: email,
+            link: link,
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours expiry
+            status: 'active'
         });
 
-        const link = await adminAuth.generatePasswordResetLink(email);
-
         return {
-            message: `User created successfully!`,
+            message: 'User created successfully!',
             data: {
                 ...validatedFields.data,
-                resetLink: link
+                resetLink: link,
+                uid: userRecord.uid
             }
         };
     } catch (error: any) {

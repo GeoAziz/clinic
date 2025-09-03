@@ -57,6 +57,8 @@ function SubmitButton({ pending }: { pending: boolean }) {
 
 
 export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void }) {
+  console.log('CreateUserDialog rendered');
+  
   const [state, formAction] = useActionState(createUser, initialState);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
@@ -71,46 +73,88 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
     setErrors,
     setTouched,
   } = useUserForm(initialForm);
+
+  // Debug logging for initial state
+  console.log('Current Dialog State:', {
+    isOpen,
+    state,
+    fields,
+    errors,
+    touched
+  });
   const [pending, setPending] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [lastResetLink, setLastResetLink] = useState<string | null>(null);
   const [lastEmail, setLastEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    // Debug logging for modal state and returned data
-    console.log('User creation state:', state);
-    console.log('showLinkModal:', showLinkModal);
-    if (state?.data?.resetLink) {
+    if (!state) return;
+    
+    console.log('CreateUserDialog: Effect triggered with state:', {
+      hasData: !!state?.data,
+      resetLink: !!state?.data?.resetLink,
+      email: state?.data?.email,
+      error: state?.error,
+      message: state?.message
+    });
+
+    if (state.data?.resetLink && state.data?.email) {
+      console.log('CreateUserDialog: Success - Reset link received');
+      
+      // Immediately update link and email
       setLastResetLink(state.data.resetLink);
       setLastEmail(state.data.email);
-      setShowLinkModal(true);
-      toast({
-        title: 'User Created!',
-        description: `A password setup link has been generated for ${state.data.email}.`,
-      });
-      onUserCreated();
+      
+      // Close create dialog and show success message
+      setIsOpen(false);
       setPending(false);
+      
+      // Show the link modal after a short delay to ensure state updates
+      setTimeout(() => {
+        setShowLinkModal(true);
+        console.log('CreateUserDialog: Link modal triggered to show');
+        
+        toast({
+          title: '✅ User Created Successfully!',
+          description: `Setup link is ready for ${state.data.email}`,
+          duration: 5000,
+        });
+        
+        // Notify parent component
+        onUserCreated();
+      }, 100);
+      
     } else if (state?.message && state.error) {
+      console.log('CreateUserDialog: Error state:', state.error);
+      setPending(false);
       toast({
         variant: 'destructive',
-        title: 'Error',
+        title: '❌ Error Creating User',
         description: state.message,
+        duration: 5000,
       });
-      setPending(false);
     }
-  }, [state, toast, onUserCreated, showLinkModal]);
+  }, [state]);
 
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
+    const handleOpenChange = (open: boolean) => {
+    console.log('Dialog open state changing:', { 
+      current: isOpen, 
+      new: open, 
+      showLinkModal 
+    });
+
+    setIsOpen(open);
+
+    // Only reset form when closing and not showing password link
+    if (!open && !showLinkModal) {
+      console.log('Resetting form state');
       setFields(initialForm);
       setErrors({});
       setTouched({});
-      state.data = undefined;
-      state.error = undefined;
-      state.message = '';
       setPending(false);
+    } else {
+      console.log('Skipping form reset due to link modal:', { showLinkModal });
     }
-    setIsOpen(open);
   };
 
   const copyToClipboard = () => {
@@ -135,37 +179,18 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button className="btn-gradient animate-pulse-glow">Add New User</Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] glass-pane" aria-modal="true" role="dialog">
-        <DialogHeader>
-          <DialogTitle>Add New User</DialogTitle>
-          <DialogDescription>
-            {state?.data ? "Share this link with the user to set up their password." : "Create a new user profile. They will receive an email to set their password."}
-          </DialogDescription>
-        </DialogHeader>
-
-  {/* Show form always, link modal is now separate */}
-      {/* Debug info for troubleshooting modal visibility */}
-      <div style={{ background: '#fffbe6', color: '#b8860b', padding: '8px', marginBottom: '8px', borderRadius: '4px', fontSize: '0.9em' }}>
-        <strong>Debug:</strong> showLinkModal={String(showLinkModal)}, resetLink={lastResetLink}, email={lastEmail}
-      </div>
-      {/* Debug: show modal props in console */}
-      {showLinkModal && (
-        <div style={{ background: '#e0f7fa', color: '#006064', padding: '8px', marginBottom: '8px', borderRadius: '4px', fontSize: '0.9em' }}>
-          <strong>Debug Modal:</strong> Modal should be open.<br />
-          resetLink: {String(lastResetLink)}<br />
-          email: {String(lastEmail)}
-        </div>
-      )}
-      <PasswordResetLinkModal
-        open={showLinkModal}
-        onOpenChange={setShowLinkModal}
-        resetLink={lastResetLink || ''}
-        email={lastEmail || ''}
-      />
+    <>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>
+          <Button className="btn-gradient animate-pulse-glow">Add New User</Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px] glass-pane" aria-modal="true" role="dialog">
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Create a new user profile. They will receive a password setup link.
+            </DialogDescription>
+          </DialogHeader>
           <form className="space-y-4" action={formAction} onSubmit={handleClientSubmit} aria-live="polite" autoComplete="off">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
@@ -213,6 +238,7 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
                 <SelectContent>
                   <SelectItem value="patient">Patient</SelectItem>
                   <SelectItem value="doctor">Doctor</SelectItem>
+                  <SelectItem value="nurse">Nurse</SelectItem>
                   <SelectItem value="receptionist">Receptionist</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
@@ -235,5 +261,13 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
           </form>
       </DialogContent>
     </Dialog>
+
+    <PasswordResetLinkModal
+      open={showLinkModal}
+      onOpenChange={setShowLinkModal}
+      resetLink={lastResetLink || ''}
+      email={lastEmail || ''}
+    />
+    </>
   );
 }

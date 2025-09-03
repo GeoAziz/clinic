@@ -6,7 +6,7 @@ import serviceAccount from '../serviceAccountKey.json';
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
     admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
         databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`
     });
 }

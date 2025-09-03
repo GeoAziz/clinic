@@ -9,6 +9,7 @@ import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateUserDialog } from "@/components/admin/create-user-dialog";
+import { UserDetailsDialog } from "@/components/admin/user-details-dialog";
 
 
 type User = {
@@ -18,9 +19,10 @@ type User = {
     role: string;
     status: string;
     lastLogin: string;
+    createdAt: string;
 };
 
-const UserTable = ({ users }: { users: User[] }) => (
+const UserTable = ({ users, onViewDetails }: { users: User[], onViewDetails: (user: User) => void }) => (
     <Table>
         <TableHeader>
             <TableRow>
@@ -54,7 +56,9 @@ const UserTable = ({ users }: { users: User[] }) => (
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onViewDetails(user)}>
+                                    View Details
+                                </DropdownMenuItem>
                                 <DropdownMenuItem>Edit</DropdownMenuItem>
                                 <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -72,6 +76,8 @@ export default function UserManagementPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -101,20 +107,26 @@ export default function UserManagementPage() {
     const staff = users.filter((user: User) => ['doctor', 'receptionist'].includes(user.role));
     const admins = users.filter((user: User) => user.role === 'admin');
 
+    const handleViewDetails = (user: User) => {
+        setSelectedUser(user);
+        setDetailsDialogOpen(true);
+    };
+
     if (loading) return <div>Loading users...</div>;
     if (error) return <div>Error: {error}</div>;
 
     return (
-        <Card className="glass-pane w-full">
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <div>
-                        <CardTitle className="font-headline text-3xl">User Management</CardTitle>
-                        <CardDescription>Manage all users in the Zizo_HealthVerse system.</CardDescription>
+        <>
+            <Card className="glass-pane w-full">
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <CardTitle className="font-headline text-3xl">User Management</CardTitle>
+                            <CardDescription>Manage all users in the Zizo_HealthVerse system.</CardDescription>
+                        </div>
+                        <CreateUserDialog onUserCreated={onUserCreated} />
                     </div>
-                    <CreateUserDialog onUserCreated={onUserCreated} />
-                </div>
-            </CardHeader>
+                </CardHeader>
             <CardContent>
                 <Tabs defaultValue="patients">
                     <TabsList className="grid w-full grid-cols-3">
@@ -125,26 +137,52 @@ export default function UserManagementPage() {
                     <TabsContent value="patients">
                         <Card className="glass-pane mt-4">
                             <CardContent className="p-0">
-                                <UserTable users={patients} />
+                                <UserTable 
+                                    users={patients}
+                                    onViewDetails={(user) => {
+                                        setSelectedUser(user);
+                                        setDetailsDialogOpen(true);
+                                    }}
+                                />
                             </CardContent>
                         </Card>
                     </TabsContent>
                     <TabsContent value="staff">
                          <Card className="glass-pane mt-4">
                             <CardContent className="p-0">
-                                <UserTable users={staff} />
+                                <UserTable 
+                                    users={staff}
+                                    onViewDetails={(user) => {
+                                        setSelectedUser(user);
+                                        setDetailsDialogOpen(true);
+                                    }}
+                                />
                             </CardContent>
                         </Card>
                     </TabsContent>
                     <TabsContent value="admins">
                          <Card className="glass-pane mt-4">
                             <CardContent className="p-0">
-                                <UserTable users={admins} />
+                                <UserTable 
+                                    users={admins}
+                                    onViewDetails={(user) => {
+                                        setSelectedUser(user);
+                                        setDetailsDialogOpen(true);
+                                    }}
+                                />
                             </CardContent>
                         </Card>
                     </TabsContent>
                 </Tabs>
             </CardContent>
         </Card>
+
+        {/* User Details Dialog */}
+        <UserDetailsDialog 
+            user={selectedUser}
+            open={detailsDialogOpen}
+            onOpenChange={setDetailsDialogOpen}
+        />
+        </>
     );
 }
