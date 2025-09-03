@@ -1,65 +1,97 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
-const initialConversations = {
-  p_1: {
-    name: 'John Doe',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d',
-    messages: [
-      { from: 'patient', text: 'Thanks for the quick response, doctor!' },
-      { from: 'doctor', text: 'You\'re welcome. Please follow the prescription and let me know if you have any questions.' },
-    ],
-  },
-  p_2: {
-    name: 'Jane Smith',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704e',
-    messages: [
-      { from: 'patient', text: 'Hi Dr. Reed, I wanted to follow up on my lab results.' },
-    ],
-  },
-};
-
-type ConversationId = keyof typeof initialConversations;
 type Message = { from: 'patient' | 'doctor'; text: string };
-type Conversations = Record<ConversationId, {
+type Conversation = {
     name: string;
     avatar: string;
     messages: Message[];
-}>
+};
+type Conversations = Record<string, Conversation>;
 
 export default function DoctorMessagesPage() {
-    const [conversations, setConversations] = useState<Conversations>(initialConversations);
-    const [selectedConversation, setSelectedConversation] = useState<ConversationId>('p_1');
+    const [conversations, setConversations] = useState<Conversations>({});
+    const [loading, setLoading] = useState(true);
+    const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
     const [newMessage, setNewMessage] = useState('');
+    const { toast } = useToast();
+
+    const fetchConversations = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/doctor/messages');
+            if (!res.ok) throw new Error('Failed to fetch conversations');
+            const data = await res.json();
+            setConversations(data);
+            // Select the first conversation by default
+            if (Object.keys(data).length > 0) {
+                setSelectedConversation(Object.keys(data)[0]);
+            }
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: error.message
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchConversations();
+    }, []);
 
     const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
         if (newMessage.trim() && selectedConversation) {
             const newMsg: Message = { from: 'doctor', text: newMessage.trim() };
             
-            setConversations(prev => {
-                const updatedConvo = {
-                    ...prev[selectedConversation],
-                    messages: [...prev[selectedConversation].messages, newMsg]
-                };
-                return {
-                    ...prev,
-                    [selectedConversation]: updatedConvo
-                };
+            // This is where you would call the API to send the message
+            console.log('Sending message to API:', {
+                conversationId: selectedConversation,
+                message: newMsg
             });
+
+            // Optimistically update the UI
+            const updatedConvo = {
+                ...conversations[selectedConversation],
+                messages: [...conversations[selectedConversation].messages, newMsg]
+            };
+            setConversations(prev => ({
+                ...prev,
+                [selectedConversation]: updatedConvo
+            }));
+
             setNewMessage('');
+
+            // In a real implementation, you would then refetch or get confirmation from the server.
+            toast({
+                title: 'Message Sent',
+                description: 'Your message has been sent successfully.',
+            });
         }
     };
     
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+                <p className="ml-4 text-lg">Loading Conversations...</p>
+            </div>
+        )
+    }
+
     return (
         <Card className="glass-pane w-full h-[calc(100vh-8rem)] flex overflow-hidden">
             {/* Conversation List */}
@@ -70,7 +102,7 @@ export default function DoctorMessagesPage() {
                 <ScrollArea className="h-full">
                     {Object.entries(conversations).map(([id, convo]) => (
                         <div key={id}
-                            onClick={() => setSelectedConversation(id as ConversationId)}
+                            onClick={() => setSelectedConversation(id)}
                             className={cn(
                                 "flex items-center gap-4 p-4 cursor-pointer hover:bg-primary/10 transition-colors",
                                 selectedConversation === id && "bg-primary/20"
@@ -90,7 +122,7 @@ export default function DoctorMessagesPage() {
 
             {/* Message Area */}
             <div className="w-2/3 flex flex-col">
-                {selectedConversation && (
+                {selectedConversation && conversations[selectedConversation] ? (
                     <>
                         <div className="p-4 border-b border-primary/20 flex items-center gap-4">
                              <Avatar className="w-10 h-10 border-2 border-primary/50">
@@ -136,6 +168,10 @@ export default function DoctorMessagesPage() {
                             </form>
                         </div>
                     </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                    <p>Select a conversation to start messaging.</p>
+                  </div>
                 )}
             </div>
         </Card>
