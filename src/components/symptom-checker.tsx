@@ -7,11 +7,12 @@ import { useFormStatus } from 'react-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Mic, Bot, User, CornerDownLeft, Loader2 } from 'lucide-react';
+import { Mic, Bot, User, CornerDownLeft, Loader2, Calendar, Phone } from 'lucide-react';
 import { checkSymptoms } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { AISymptomCheckerOutput } from '@/ai/flows/ai-symptom-checker';
+import Link from 'next/link';
 
 const initialState = {
   error: null,
@@ -96,6 +97,8 @@ export default function SymptomChecker() {
   const setTranscript = (transcript: string) => {
     setSymptoms(transcript);
   }
+  
+  const resultData = state.data as AISymptomCheckerOutput & { symptoms: string } | null;
 
   return (
     <Card className="glass-pane neon-border-accent w-full">
@@ -107,7 +110,7 @@ export default function SymptomChecker() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="h-64 space-y-4 overflow-y-auto rounded-lg border bg-background/30 p-4">
+          <div className="h-96 space-y-4 overflow-y-auto rounded-lg border bg-background/30 p-4">
             <div className="flex items-start gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
                 <Bot size={20} />
@@ -118,12 +121,12 @@ export default function SymptomChecker() {
               </div>
             </div>
 
-            {state.data && (
+            {resultData && (
                 <>
                 <div className="flex items-start gap-3 justify-end">
                     <div className="glass-pane rounded-lg p-3 text-right">
                         <p className="font-semibold">You</p>
-                        <p className="text-sm">{(state.data as any).symptoms}</p>
+                        <p className="text-sm">{resultData.symptoms}</p>
                     </div>
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                         <User size={20} />
@@ -134,18 +137,33 @@ export default function SymptomChecker() {
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
                         <Bot size={20} />
                     </div>
-                    <div className="glass-pane rounded-lg border-accent/50 p-3">
-                        <p className="font-semibold text-accent">AI Nurse Analysis</p>
-                        <p className="text-sm">
-                            <strong>Pre-Diagnosis:</strong> {(state.data as AISymptomCheckerOutput).preDiagnosis}
-                        </p>
-                        <div className="mt-2 flex items-center gap-2">
-                            <strong>Triage Score:</strong>
-                            <div className="relative w-24 h-4 bg-muted rounded-full overflow-hidden">
-                                <div className="absolute h-full bg-destructive transition-all" style={{width: `${(state.data as AISymptomCheckerOutput).triageScore * 10}%`}}></div>
+                    <div className="space-y-2">
+                        <div className="glass-pane rounded-lg border-accent/50 p-3">
+                            <p className="font-semibold text-accent">AI Nurse Analysis</p>
+                            <p className="text-sm">
+                                <strong>Pre-Diagnosis:</strong> {resultData.preDiagnosis}
+                            </p>
+                            <div className="mt-2 flex items-center gap-2">
+                                <strong>Triage Score:</strong>
+                                <div className="relative w-24 h-4 bg-muted rounded-full overflow-hidden">
+                                    <div className="absolute h-full bg-destructive transition-all" style={{width: `${resultData.triageScore * 10}%`}}></div>
+                                </div>
+                                <span className="font-bold text-lg">{resultData.triageScore}/10</span>
                             </div>
-                            <span className="font-bold text-lg">{(state.data as AISymptomCheckerOutput).triageScore}/10</span>
                         </div>
+                        {resultData.triageScore >= 7 ? (
+                             <Button variant="destructive" className="animate-pulse" asChild>
+                                <a href="tel:+1-555-765-4321">
+                                    <Phone className="mr-2" /> Emergency - Call Now
+                                </a>
+                            </Button>
+                        ) : (
+                            <Button className="btn-gradient" asChild>
+                                <Link href="/book">
+                                    <Calendar className="mr-2"/> Book an Appointment
+                                </Link>
+                            </Button>
+                        )}
                     </div>
                 </div>
                 </>
