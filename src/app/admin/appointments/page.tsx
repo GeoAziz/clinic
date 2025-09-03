@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 type Appointment = {
     id: string;
@@ -53,7 +54,9 @@ export default function AppointmentManagementPage() {
                         <CardTitle className="font-headline text-3xl">Appointment Management</CardTitle>
                         <CardDescription>Global view of all scheduled appointments.</CardDescription>
                     </div>
-                     <Button className="btn-gradient animate-pulse-glow">New Appointment</Button>
+                     <Button className="btn-gradient animate-pulse-glow" asChild>
+                        <Link href="/book">New Appointment</Link>
+                     </Button>
                 </div>
             </CardHeader>
             <CardContent>
