@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { notFound, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
+import { notFound } from "next/navigation";
 import { AddConsultationNotesDialog } from '@/components/doctor/add-consultation-notes-dialog';
 import type { Appointment } from '@/app/doctor/appointments/page';
 
@@ -66,7 +67,9 @@ export default function PatientChartPage() {
                            <Button size="sm" variant="secondary" asChild>
                                <Link href="/book"><Calendar className="mr-2"/>New Appointment</Link>
                            </Button>
-                           <Button size="sm" variant="secondary"><MessageSquare className="mr-2"/>Send Message</Button>
+                           <Button size="sm" variant="secondary" asChild>
+                               <Link href="/doctor/messages"><MessageSquare className="mr-2"/>Send Message</Link>
+                           </Button>
                         </div>
                     </div>
                 </CardHeader>
