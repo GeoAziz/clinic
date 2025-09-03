@@ -9,17 +9,34 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from '@/hooks/use-toast';
 import { Stethoscope, User, CalendarDays, Check, ArrowRight, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { LucideIcon } from 'lucide-react';
 
-const services = [
+
+interface Service {
+    id: number;
+    name: string;
+    icon: LucideIcon;
+}
+
+interface Doctor {
+    id: number;
+    name: string;
+    specialty: string;
+    avatar: string;
+    serviceIds: number[];
+}
+
+
+const services: Service[] = [
   { id: 1, name: 'Consultation', icon: Stethoscope },
   { id: 2, name: 'Dental', icon: User },
   { id: 3, name: 'Lab Test', icon: User },
 ];
 
-const doctors = [
-  { id: 1, name: 'Dr. Evelyn Reed', specialty: 'Cybernetics', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
-  { id: 2, name: 'Dr. Kenji Tanaka', specialty: 'Genetics', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704e' },
-  { id: 3, name: 'Dr. Anya Sharma', specialty: 'Neurology', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704f' },
+const allDoctors: Doctor[] = [
+  { id: 1, name: 'Dr. Evelyn Reed', specialty: 'Cybernetics', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', serviceIds: [1, 2] },
+  { id: 2, name: 'Dr. Kenji Tanaka', specialty: 'Genetics', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704e', serviceIds: [1, 3] },
+  { id: 3, name: 'Dr. Anya Sharma', specialty: 'Neurology', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704f', serviceIds: [1, 3] },
 ];
 
 const timeSlots = [ '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00' ];
@@ -31,6 +48,15 @@ export default function AppointmentBooking() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const handleServiceSelection = (serviceId: number) => {
+    setSelectedService(serviceId);
+    setSelectedDoctor(null); // Reset doctor selection when service changes
+  }
+  
+  const handleDoctorSelection = (doctorId: number) => {
+      setSelectedDoctor(doctorId);
+  }
 
   const handleNextStep = () => {
     if (step === 1 && !selectedService) {
@@ -62,7 +88,11 @@ export default function AppointmentBooking() {
   };
 
   const getServiceName = () => services.find(s => s.id === selectedService)?.name;
-  const getDoctorName = () => doctors.find(d => d.id === selectedDoctor)?.name;
+  const getDoctorName = () => allDoctors.find(d => d.id === selectedDoctor)?.name;
+  
+  const availableDoctors = selectedService
+    ? allDoctors.filter(doctor => doctor.serviceIds.includes(selectedService))
+    : [];
 
   return (
     <Card className="glass-pane w-full max-w-4xl mx-auto">
@@ -83,7 +113,7 @@ export default function AppointmentBooking() {
                 <h3 className="mb-4 text-xl font-semibold text-center font-headline">1. Choose Service</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {services.map(service => (
-                        <Card key={service.id} onClick={() => setSelectedService(service.id)}
+                        <Card key={service.id} onClick={() => handleServiceSelection(service.id)}
                             className={cn('glass-pane text-center p-6 cursor-pointer group hover:neon-border transition-all', selectedService === service.id && 'neon-border')}>
                             <div className="flex justify-center mb-4">
                                 <service.icon className="h-12 w-12 text-primary group-hover:neon-glow-primary transition-all"/>
@@ -97,19 +127,23 @@ export default function AppointmentBooking() {
         {step === 2 && (
             <div>
                 <h3 className="mb-4 text-xl font-semibold text-center font-headline">2. Select Doctor</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {doctors.map(doctor => (
-                        <Card key={doctor.id} onClick={() => setSelectedDoctor(doctor.id)}
-                            className={cn('glass-pane p-4 cursor-pointer group hover:neon-border transition-all flex flex-col items-center text-center', selectedDoctor === doctor.id && 'neon-border')}>
-                            <Avatar className="w-20 h-20 mb-4 border-2 border-primary/50 group-hover:border-accent">
-                                <AvatarImage src={doctor.avatar} />
-                                <AvatarFallback>{doctor.name.substring(0,2)}</AvatarFallback>
-                            </Avatar>
-                            <h4 className="font-bold font-headline">{doctor.name}</h4>
-                            <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
-                        </Card>
-                    ))}
-                </div>
+                {availableDoctors.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {availableDoctors.map(doctor => (
+                            <Card key={doctor.id} onClick={() => handleDoctorSelection(doctor.id)}
+                                className={cn('glass-pane p-4 cursor-pointer group hover:neon-border transition-all flex flex-col items-center text-center', selectedDoctor === doctor.id && 'neon-border')}>
+                                <Avatar className="w-20 h-20 mb-4 border-2 border-primary/50 group-hover:border-accent">
+                                    <AvatarImage src={doctor.avatar} />
+                                    <AvatarFallback>{doctor.name.substring(0,2)}</AvatarFallback>
+                                </Avatar>
+                                <h4 className="font-bold font-headline">{doctor.name}</h4>
+                                <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
+                            </Card>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-center text-muted-foreground">No doctors available for the selected service. Please go back and choose another service.</p>
+                )}
             </div>
         )}
         {step === 3 && (
