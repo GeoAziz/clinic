@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -41,7 +42,7 @@ const LoginForm = () => {
                         router.push('/admin');
                         break;
                     case 'patient':
-                        router.push('/'); // Or a patient dashboard
+                        router.push('/patient/dashboard'); // Or a patient dashboard
                         break;
                     // Add other roles like doctor, nurse etc.
                     default:
@@ -118,8 +119,7 @@ const SignupForm = () => {
             });
 
             toast({ title: 'Signup Successful!', description: 'Your account has been created.' });
-            router.push('/');
-
+            router.push('/patient/dashboard');
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Signup Failed', description: error.message });
         } finally {
@@ -174,7 +174,7 @@ const SignupForm = () => {
             <Select onValueChange={setProfileType} value={profileType}>
                 <SelectTrigger className="glass-pane focus:neon-border">
                     <SelectValue placeholder="Select profile type" />
-                </SelectTrigger>
+                </Trigger>
                 <SelectContent>
                     <SelectItem value="online">Online Profile</SelectItem>
                     <SelectItem value="physical">Link Existing Hospital Record</SelectItem>

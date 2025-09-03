@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ const Logo = () => (
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthenticatedRoute = pathname.startsWith('/admin') || pathname.startsWith('/dashboard');
+  const isAuthenticatedRoute = pathname.startsWith('/admin') || pathname.startsWith('/patient');
 
   if (isAuthenticatedRoute) {
     return <>{children}</>;

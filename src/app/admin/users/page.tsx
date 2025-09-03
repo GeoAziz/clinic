@@ -12,7 +12,7 @@ import { CreateUserDialog } from "@/components/admin/create-user-dialog";
 import { UserDetailsDialog } from "@/components/admin/user-details-dialog";
 
 
-type User = {
+export type User = {
     id: string;
     name: string;
     email: string;
@@ -22,7 +22,7 @@ type User = {
     createdAt: string;
 };
 
-const UserTable = ({ users, onViewDetails }: { users: User[], onViewDetails: (user: User) => void }) => (
+const UserTable = ({ users }: { users: User[] }) => (
     <Table>
         <TableHeader>
             <TableRow>
@@ -56,9 +56,7 @@ const UserTable = ({ users, onViewDetails }: { users: User[], onViewDetails: (us
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                                <DropdownMenuItem onClick={() => onViewDetails(user)}>
-                                    View Details
-                                </DropdownMenuItem>
+                                <DropdownMenuItem>View Details</DropdownMenuItem>
                                 <DropdownMenuItem>Edit</DropdownMenuItem>
                                 <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -76,7 +74,6 @@ export default function UserManagementPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
     const fetchUsers = async () => {
@@ -98,8 +95,8 @@ export default function UserManagementPage() {
         fetchUsers();
     }, []);
 
-    const onUserCreated = () => {
-        // Re-fetch users list after a new user is created
+    const onUserChanged = () => {
+        // Re-fetch users list after a user is created/updated/deactivated
         fetchUsers();
     }
 
@@ -109,7 +106,7 @@ export default function UserManagementPage() {
 
     const handleViewDetails = (user: User) => {
         setSelectedUser(user);
-        setDetailsDialogOpen(true);
+        setIsDialogOpen(true);
     };
 
     if (loading) return <div>Loading users...</div>;
@@ -124,65 +121,47 @@ export default function UserManagementPage() {
                             <CardTitle className="font-headline text-3xl">User Management</CardTitle>
                             <CardDescription>Manage all users in the Zizo_HealthVerse system.</CardDescription>
                         </div>
-                        <CreateUserDialog onUserCreated={onUserCreated} />
+                        <CreateUserDialog onUserCreated={onUserChanged} />
                     </div>
                 </CardHeader>
-            <CardContent>
-                <Tabs defaultValue="patients">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="patients">Patients</TabsTrigger>
-                        <TabsTrigger value="staff">Staff</TabsTrigger>
-                        <TabsTrigger value="admins">Admins</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="patients">
-                        <Card className="glass-pane mt-4">
-                            <CardContent className="p-0">
-                                <UserTable 
-                                    users={patients}
-                                    onViewDetails={(user) => {
-                                        setSelectedUser(user);
-                                        setDetailsDialogOpen(true);
-                                    }}
-                                />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    <TabsContent value="staff">
-                         <Card className="glass-pane mt-4">
-                            <CardContent className="p-0">
-                                <UserTable 
-                                    users={staff}
-                                    onViewDetails={(user) => {
-                                        setSelectedUser(user);
-                                        setDetailsDialogOpen(true);
-                                    }}
-                                />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    <TabsContent value="admins">
-                         <Card className="glass-pane mt-4">
-                            <CardContent className="p-0">
-                                <UserTable 
-                                    users={admins}
-                                    onViewDetails={(user) => {
-                                        setSelectedUser(user);
-                                        setDetailsDialogOpen(true);
-                                    }}
-                                />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
-            </CardContent>
-        </Card>
+                <CardContent>
+                    <Tabs defaultValue="patients">
+                        <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="patients">Patients</TabsTrigger>
+                            <TabsTrigger value="staff">Staff</TabsTrigger>
+                            <TabsTrigger value="admins">Admins</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="patients">
+                            <Card className="glass-pane mt-4">
+                                <CardContent className="p-0">
+                                    <UserTable users={patients} />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                        <TabsContent value="staff">
+                            <Card className="glass-pane mt-4">
+                                <CardContent className="p-0">
+                                    <UserTable users={staff} />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                        <TabsContent value="admins">
+                            <Card className="glass-pane mt-4">
+                                <CardContent className="p-0">
+                                    <UserTable users={admins} />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
+                </CardContent>
+            </Card>
 
-        {/* User Details Dialog */}
-        <UserDetailsDialog 
-            user={selectedUser}
-            open={detailsDialogOpen}
-            onOpenChange={setDetailsDialogOpen}
-        />
+            {/* User Details Dialog */}
+            <UserDetailsDialog 
+                user={selectedUser}
+                open={isDialogOpen}
+                onOpenChange={setIsDialogOpen}
+            />
         </>
     );
 }
