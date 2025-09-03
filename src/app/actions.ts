@@ -231,3 +231,56 @@ export async function deactivateUser(prevState: any, formData: FormData) {
         return { message: 'An unexpected error occurred.' };
     }
 }
+
+const appointmentSchema = z.object({
+  service: z.string().min(1, 'Service is required.'),
+  doctorId: z.string().min(1, 'Doctor is required.'),
+  doctorName: z.string().min(1, 'Doctor name is required.'),
+  date: z.string().min(1, 'Date is required.'),
+  time: z.string().min(1, 'Time is required.'),
+  patientId: z.string().min(1, 'Patient ID is required.'),
+  patientName: z.string().min(1, 'Patient name is required.'),
+});
+
+export async function createAppointment(prevState: any, formData: FormData) {
+  const validatedFields = appointmentSchema.safeParse({
+    service: formData.get('service'),
+    doctorId: formData.get('doctorId'),
+    doctorName: formData.get('doctorName'),
+    date: formData.get('date'),
+    time: formData.get('time'),
+    patientId: formData.get('patientId'),
+    patientName: formData.get('patientName'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      error: validatedFields.error.flatten().fieldErrors,
+      message: 'Invalid appointment data.',
+    };
+  }
+  
+  try {
+    const { adminDb } = await getAdmin();
+    if (!adminDb) {
+      throw new Error('Firebase Admin SDK not initialized.');
+    }
+    
+    const appointmentData = {
+      ...validatedFields.data,
+      status: 'Confirmed', // Default status
+      createdAt: new Date().toISOString(),
+    };
+
+    await adminDb.collection('appointments').add(appointmentData);
+
+    return { message: 'Appointment created successfully!' };
+
+  } catch (error: any) {
+    console.error('Error creating appointment:', error);
+    return { 
+        message: 'An unexpected error occurred.',
+        error: { _form: [error.message] } 
+    };
+  }
+}
