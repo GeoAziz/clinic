@@ -117,7 +117,11 @@ export default function ReceptionistPatientPage() {
                             <CardTitle className="font-headline text-3xl">Patient Registration</CardTitle>
                             <CardDescription>Manage and register new patients.</CardDescription>
                         </div>
-                        <CreateUserDialog onUserCreated={onUserChanged} />
+                        <CreateUserDialog 
+                            onUserCreated={onUserChanged} 
+                            defaultRole="patient" 
+                            buttonText="Add New Patient"
+                        />
                     </div>
                 </CardHeader>
                 <CardContent>

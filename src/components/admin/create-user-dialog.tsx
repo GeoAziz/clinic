@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -45,18 +46,18 @@ const initialState = {
 };
 
 
-function SubmitButton() {
+function SubmitButton({defaultRole}: {defaultRole?: string}) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} className="btn-gradient" aria-busy={pending}>
       {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Create User
+      {defaultRole ? 'Create Patient' : 'Create User'}
     </Button>
   );
 }
 
 
-export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void }) {
+export function CreateUserDialog({ onUserCreated, defaultRole, buttonText = "Add New User" }: { onUserCreated: () => void, defaultRole?: 'patient' | 'doctor' | 'nurse' | 'receptionist' | 'admin', buttonText?: string }) {
   const [state, formAction] = useActionState(createUser, initialState);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
@@ -71,7 +72,7 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
     setFields,
     setErrors,
     setTouched,
-  } = useUserForm(initialForm);
+  } = useUserForm({ ...initialForm, role: defaultRole || 'patient' });
 
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [lastResetLink, setLastResetLink] = useState<string | null>(null);
@@ -112,7 +113,7 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
     setIsOpen(open);
 
     if (!open && !showLinkModal) {
-      setFields(initialForm);
+      setFields({ ...initialForm, role: defaultRole || 'patient' });
       setErrors({});
       setTouched({});
       formRef.current?.reset();
@@ -124,13 +125,13 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
     <>
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          <Button className="btn-gradient animate-pulse-glow">Add New User</Button>
+          <Button className="btn-gradient animate-pulse-glow">{buttonText}</Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px] glass-pane" aria-modal="true" role="dialog">
           <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
+            <DialogTitle>{defaultRole ? 'Add New Patient' : 'Add New User'}</DialogTitle>
             <DialogDescription>
-              Create a new user profile. They will receive a password setup link.
+              {defaultRole ? 'Create a new patient profile. They will receive a password setup link.' : 'Create a new user profile. They will receive a password setup link.'}
             </DialogDescription>
           </DialogHeader>
           <form ref={formRef} action={formAction} className="space-y-4" aria-live="polite" autoComplete="off">
@@ -171,24 +172,28 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
                 <p className="text-xs text-destructive" id="email-error">{errors.email[0]}</p>
               )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select name="role" required value={fields.role} onValueChange={val => handleChange('role', val)} disabled={pending}>
-                <SelectTrigger id="role">
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="patient">Patient</SelectItem>
-                  <SelectItem value="doctor">Doctor</SelectItem>
-                  <SelectItem value="nurse">Nurse</SelectItem>
-                  <SelectItem value="receptionist">Receptionist</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-              {touched.role && errors.role && (
-                <p className="text-xs text-destructive" id="role-error">{errors.role[0]}</p>
-              )}
-            </div>
+            {defaultRole ? (
+                <input type="hidden" name="role" value={defaultRole} />
+            ) : (
+                <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select name="role" required value={fields.role} onValueChange={val => handleChange('role', val)} disabled={pending}>
+                    <SelectTrigger id="role">
+                    <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="patient">Patient</SelectItem>
+                    <SelectItem value="doctor">Doctor</SelectItem>
+                    <SelectItem value="nurse">Nurse</SelectItem>
+                    <SelectItem value="receptionist">Receptionist</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                </Select>
+                {touched.role && errors.role && (
+                    <p className="text-xs text-destructive" id="role-error">{errors.role[0]}</p>
+                )}
+                </div>
+            )}
             {state.error?._form && (
               <p className="text-sm font-medium text-destructive">{state.error._form[0]}</p>
             )}
@@ -196,7 +201,7 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
               <DialogClose asChild>
                 <Button variant="outline" disabled={pending}>Cancel</Button>
               </DialogClose>
-              <SubmitButton />
+              <SubmitButton defaultRole={defaultRole} />
             </DialogFooter>
           </form>
       </DialogContent>
