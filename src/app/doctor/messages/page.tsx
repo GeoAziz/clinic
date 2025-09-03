@@ -66,6 +66,17 @@ export default function DoctorMessagesPage() {
             const newMsg: Message = { from: 'doctor', text: newMessage.trim() };
 
             try {
+                // Optimistically update UI
+                const updatedConvo = {
+                    ...conversations[selectedConversation],
+                    messages: [...conversations[selectedConversation].messages, newMsg]
+                };
+                setConversations(prev => ({
+                    ...prev,
+                    [selectedConversation]: updatedConvo
+                }));
+                setNewMessage('');
+
                 const response = await fetch('/api/doctor/messages/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -79,17 +90,6 @@ export default function DoctorMessagesPage() {
                     throw new Error('Failed to send message.');
                 }
                 
-                // Optimistically update UI
-                const updatedConvo = {
-                    ...conversations[selectedConversation],
-                    messages: [...conversations[selectedConversation].messages, newMsg]
-                };
-                setConversations(prev => ({
-                    ...prev,
-                    [selectedConversation]: updatedConvo
-                }));
-
-                setNewMessage('');
                 await fetchConversations(); // Re-fetch to confirm state
                 
             } catch (error: any) {
@@ -98,6 +98,8 @@ export default function DoctorMessagesPage() {
                     title: 'Error sending message',
                     description: error.message,
                 });
+                 // Revert optimistic update on error
+                fetchConversations();
             } finally {
                 setSending(false);
             }
@@ -186,7 +188,7 @@ export default function DoctorMessagesPage() {
                                     onChange={(e) => setNewMessage(e.target.value)}
                                     disabled={sending}
                                 />
-                                <Button type="submit" size="icon" className="absolute top-1/2 right-2 -translate-y-1/2 h-8 w-8 btn-gradient" disabled={sending}>
+                                <Button type="submit" size="icon" className="absolute top-1/2 right-2 -translate-y-1/2 h-8 w-8 btn-gradient" disabled={sending || !newMessage.trim()}>
                                     {sending ? <Loader2 className="animate-spin" /> : <Send />}
                                 </Button>
                             </form>
