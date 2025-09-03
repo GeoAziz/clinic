@@ -38,6 +38,38 @@ export default function NursesPage() {
     fetchNurses();
   }, []);
 
+  const handleAssignPatient = async () => {
+    if (!selectedNurse || !assignPatientId) return;
+    setActionLoading(true);
+    await fetch('/api/admin/nurses/assign-patient', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nurseId: selectedNurse.uid, patientId: assignPatientId })
+    });
+    setActionLoading(false);
+    setShowAssignModal(false);
+    setAssignPatientId('');
+    setSelectedNurse(null);
+    const res = await fetch("/api/admin/nurses");
+    if (res.ok) setNurses(await res.json());
+  };
+
+  const handleUpdateSchedule = async () => {
+    if (!selectedNurse) return;
+    setActionLoading(true);
+    await fetch('/api/admin/nurses/update-schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nurseId: selectedNurse.uid, schedule: newSchedule })
+    });
+    setActionLoading(false);
+    setShowScheduleModal(false);
+    setNewSchedule([]);
+    setSelectedNurse(null);
+    const res = await fetch("/api/admin/nurses");
+    if (res.ok) setNurses(await res.json());
+  };
+  
   return (
     <Card className="glass-pane w-full">
       <CardHeader>
@@ -95,7 +127,7 @@ export default function NursesPage() {
                   </TableCell>
                   <TableCell>
                     <Button size="sm" variant="outline" onClick={() => { setSelectedNurse(nurse); setShowAssignModal(true); }}>Assign Patient</Button>
-                    <Button size="sm" className="ml-2" variant="outline" onClick={() => { setSelectedNurse(nurse); setShowScheduleModal(true); }}>Edit Schedule</Button>
+                    <Button size="sm" className="ml-2" variant="outline" onClick={() => { setSelectedNurse(nurse); setNewSchedule(nurse.schedule || []); setShowScheduleModal(true); }}>Edit Schedule</Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -103,107 +135,56 @@ export default function NursesPage() {
           </Table>
         )}
 
-        {/* Assign Patient Modal */}
         {showAssignModal && selectedNurse && (
-          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-bold mb-2">Assign Patient to {selectedNurse.displayName}</h3>
-              <input
-                type="text"
-                placeholder="Patient ID"
-                value={assignPatientId}
-                onChange={e => setAssignPatientId(e.target.value)}
-                className="border rounded px-2 py-1 w-full mb-4"
-              />
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setShowAssignModal(false)}>Cancel</Button>
-                <Button
-                  onClick={async () => {
-                    setActionLoading(true);
-                    await fetch('/api/admin/nurses/assign-patient', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ nurseId: selectedNurse.uid, patientId: assignPatientId })
-                    });
-                    setActionLoading(false);
-                    setShowAssignModal(false);
-                    setAssignPatientId('');
-                    setSelectedNurse(null);
-                    // Refresh nurses
-                    const res = await fetch("/api/admin/nurses");
-                    if (res.ok) {
-                      const data = await res.json();
-                      setNurses(data);
-                    }
-                  }}
-                  disabled={!assignPatientId || actionLoading}
-                >Assign</Button>
-              </div>
-            </div>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-md">
+                <CardHeader>
+                    <CardTitle>Assign Patient to {selectedNurse.displayName}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <input
+                        type="text"
+                        placeholder="Patient ID"
+                        value={assignPatientId}
+                        onChange={e => setAssignPatientId(e.target.value)}
+                        className="w-full p-2 border rounded"
+                    />
+                    <div className="flex gap-2 justify-end">
+                        <Button variant="outline" onClick={() => setShowAssignModal(false)}>Cancel</Button>
+                        <Button onClick={handleAssignPatient} disabled={!assignPatientId || actionLoading}>
+                            {actionLoading ? 'Assigning...' : 'Assign'}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
           </div>
         )}
 
-        {/* Edit Schedule Modal */}
         {showScheduleModal && selectedNurse && (
-          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-bold mb-2">Edit Schedule for {selectedNurse.displayName}</h3>
-              <div className="space-y-2 mb-4">
-                {newSchedule.map((s, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <input
-                      type="date"
-                      value={s.date}
-                      onChange={e => {
-                        const updated = [...newSchedule];
-                        updated[idx].date = e.target.value;
-                        setNewSchedule(updated);
-                      }}
-                      className="border rounded px-2 py-1"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Shift (e.g. Morning)"
-                      value={s.shift}
-                      onChange={e => {
-                        const updated = [...newSchedule];
-                        updated[idx].shift = e.target.value;
-                        setNewSchedule(updated);
-                      }}
-                      className="border rounded px-2 py-1"
-                    />
-                    <Button size="sm" variant="destructive" onClick={() => {
-                      setNewSchedule(newSchedule.filter((_, i) => i !== idx));
-                    }}>Remove</Button>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+             <Card className="w-full max-w-lg">
+                <CardHeader>
+                   <CardTitle>Edit Schedule for {selectedNurse.displayName}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 mb-4 max-h-64 overflow-y-auto p-1">
+                    {newSchedule.map((s, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <input type="date" value={s.date} onChange={e => { const u = [...newSchedule]; u[idx].date = e.target.value; setNewSchedule(u); }} className="p-2 border rounded"/>
+                        <input type="text" placeholder="Shift (e.g. Morning)" value={s.shift} onChange={e => { const u = [...newSchedule]; u[idx].shift = e.target.value; setNewSchedule(u); }} className="flex-grow p-2 border rounded"/>
+                        <Button size="sm" variant="destructive" onClick={() => setNewSchedule(newSchedule.filter((_, i) => i !== idx))}>Remove</Button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                <Button size="sm" variant="outline" onClick={() => setNewSchedule([...newSchedule, { date: '', shift: '' }])}>Add Shift</Button>
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => { setShowScheduleModal(false); setNewSchedule([]); }}>Cancel</Button>
-                <Button
-                  onClick={async () => {
-                    setActionLoading(true);
-                    await fetch('/api/admin/nurses/update-schedule', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ nurseId: selectedNurse.uid, schedule: newSchedule })
-                    });
-                    setActionLoading(false);
-                    setShowScheduleModal(false);
-                    setNewSchedule([]);
-                    setSelectedNurse(null);
-                    // Refresh nurses
-                    const res = await fetch("/api/admin/nurses");
-                    if (res.ok) {
-                      const data = await res.json();
-                      setNurses(data);
-                    }
-                  }}
-                  disabled={actionLoading}
-                >Save</Button>
-              </div>
-            </div>
+                  <Button size="sm" variant="outline" onClick={() => setNewSchedule([...newSchedule, { date: '', shift: '' }])}>Add Shift</Button>
+                  <div className="flex gap-2 justify-end mt-4">
+                    <Button variant="outline" onClick={() => { setShowScheduleModal(false); setNewSchedule([]); }}>Cancel</Button>
+                    <Button onClick={handleUpdateSchedule} disabled={actionLoading}>
+                        {actionLoading ? 'Saving...' : 'Save Schedule'}
+                    </Button>
+                  </div>
+                </CardContent>
+            </Card>
           </div>
         )}
       </CardContent>

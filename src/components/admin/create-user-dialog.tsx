@@ -41,7 +41,7 @@ const initialForm: UserFormFields = {
 
 const initialState = {
   error: { _form: [] as string[] },
-  data: undefined,
+  data: undefined as ({ resetLink: string, email: string } | undefined),
   message: '',
 };
 
@@ -57,8 +57,6 @@ function SubmitButton({ pending }: { pending: boolean }) {
 
 
 export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void }) {
-  console.log('CreateUserDialog rendered');
-  
   const [state, formAction] = useActionState(createUser, initialState);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
@@ -74,14 +72,6 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
     setTouched,
   } = useUserForm(initialForm);
 
-  // Debug logging for initial state
-  console.log('Current Dialog State:', {
-    isOpen,
-    state,
-    fields,
-    errors,
-    touched
-  });
   const [pending, setPending] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [lastResetLink, setLastResetLink] = useState<string | null>(null);
@@ -89,43 +79,25 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
 
   useEffect(() => {
     if (!state) return;
-    
-    console.log('CreateUserDialog: Effect triggered with state:', {
-      hasData: !!state?.data,
-      resetLink: !!state?.data?.resetLink,
-      email: state?.data?.email,
-      error: state?.error,
-      message: state?.message
-    });
 
     if (state.data?.resetLink && state.data?.email) {
-      console.log('CreateUserDialog: Success - Reset link received');
-      
-      // Immediately update link and email
       setLastResetLink(state.data.resetLink);
       setLastEmail(state.data.email);
       
-      // Close create dialog and show success message
       setIsOpen(false);
       setPending(false);
       
-      // Show the link modal after a short delay to ensure state updates
       setTimeout(() => {
         setShowLinkModal(true);
-        console.log('CreateUserDialog: Link modal triggered to show');
-        
         toast({
           title: '✅ User Created Successfully!',
           description: `Setup link is ready for ${state.data.email}`,
           duration: 5000,
         });
-        
-        // Notify parent component
         onUserCreated();
       }, 100);
       
     } else if (state?.message && state.error) {
-      console.log('CreateUserDialog: Error state:', state.error);
       setPending(false);
       toast({
         variant: 'destructive',
@@ -134,48 +106,29 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
         duration: 5000,
       });
     }
-  }, [state]);
+  }, [state, onUserCreated, toast]);
 
     const handleOpenChange = (open: boolean) => {
-    console.log('Dialog open state changing:', { 
-      current: isOpen, 
-      new: open, 
-      showLinkModal 
-    });
-
     setIsOpen(open);
 
-    // Only reset form when closing and not showing password link
     if (!open && !showLinkModal) {
-      console.log('Resetting form state');
       setFields(initialForm);
       setErrors({});
       setTouched({});
       setPending(false);
-    } else {
-      console.log('Skipping form reset due to link modal:', { showLinkModal });
+      // Reset action state if needed
+      // state.message = '';
+      // state.error = { _form: [] };
     }
   };
 
-  const copyToClipboard = () => {
-    if (state?.data?.resetLink) {
-      navigator.clipboard.writeText(state.data.resetLink);
-      toast({ title: 'Copied!', description: 'Password reset link copied to clipboard.' });
-    }
-  };
-
-
-  // Ref to hidden submit button
-  const hiddenSubmitRef = useRef<HTMLButtonElement>(null);
-
-  // Only allow server action if client validation passes
   const handleClientSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!validate()) {
-      e.preventDefault();
       return;
     }
     setPending(true);
-    // allow form to submit to server action
+    formAction(new FormData(e.currentTarget));
   };
 
   return (
@@ -191,7 +144,7 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
               Create a new user profile. They will receive a password setup link.
             </DialogDescription>
           </DialogHeader>
-          <form className="space-y-4" action={formAction} onSubmit={handleClientSubmit} aria-live="polite" autoComplete="off">
+          <form className="space-y-4" onSubmit={handleClientSubmit} aria-live="polite" autoComplete="off">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
               <Input
@@ -247,16 +200,14 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
                 <p className="text-xs text-destructive" id="role-error">{errors.role[0]}</p>
               )}
             </div>
-            {errors._form && (
-              <p className="text-sm font-medium text-destructive">{errors._form[0]}</p>
+            {state.error?._form && (
+              <p className="text-sm font-medium text-destructive">{state.error._form[0]}</p>
             )}
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline" disabled={pending}>Cancel</Button>
               </DialogClose>
               <SubmitButton pending={pending} />
-              {/* Hidden submit button for programmatic submit if needed */}
-              <button type="submit" ref={hiddenSubmitRef} style={{ display: 'none' }} tabIndex={-1} aria-hidden="true">Submit</button>
             </DialogFooter>
           </form>
       </DialogContent>

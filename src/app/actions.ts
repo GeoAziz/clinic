@@ -117,7 +117,7 @@ export async function createUser(prevState: any, formData: FormData) {
         const link = await adminAuth.generatePasswordResetLink(email);
         console.log('Server Action: Setup link generated successfully');
 
-        // Store the reset link in a separate collection
+        // Store the reset link in a separate collection for auditing
         await adminDb.collection('userSetupLinks').doc(userRecord.uid).set({
             userId: userRecord.uid,
             email: email,
@@ -154,7 +154,7 @@ export async function createUser(prevState: any, formData: FormData) {
 const updateUserSchema = z.object({
   uid: z.string().min(1, 'User ID is required.'),
   fullName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }).optional(),
-  role: z.enum(['patient', 'doctor', 'receptionist', 'admin']).optional(),
+  role: z.enum(['patient', 'doctor', 'nurse', 'receptionist', 'admin']).optional(),
 });
 
 export async function updateUser(prevState: any, formData: FormData) {

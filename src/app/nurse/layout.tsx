@@ -15,14 +15,12 @@ import {
   SidebarSeparator
 } from '@/components/ui/sidebar';
 import {
-  LineChart,
-  Settings,
-  Users,
-  Calendar,
   LayoutDashboard,
-  Shield,
+  Calendar,
+  Users,
+  User,
   LogOut,
-  UserPlus,
+  ClipboardList
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -30,7 +28,7 @@ import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
-export default function AdminLayout({
+export default function NurseLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -40,13 +38,11 @@ export default function AdminLayout({
   const { toast } = useToast();
 
   const menuItems = [
-    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/admin/users', label: 'User Management', icon: Users },
-    { href: '/admin/nurses', label: 'Nurse Management', icon: UserPlus },
-    { href: '/admin/appointments', label: 'Appointments', icon: Calendar },
-    { href: '/admin/analytics', label: 'Analytics', icon: LineChart },
-    { href: '/admin/security', label: 'Security & Logs', icon: Shield },
-    { href: '/admin/settings', label: 'Settings', icon: Settings },
+    { href: '/nurse/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/nurse/schedule', label: 'My Schedule', icon: Calendar },
+    { href: '/nurse/patients', label: 'Assigned Patients', icon: Users },
+    { href: '/nurse/vitals', label: 'Log Vitals', icon: ClipboardList },
+    { href: '/nurse/profile', label: 'Profile', icon: User },
   ];
   
   const handleLogout = async () => {
@@ -78,7 +74,7 @@ export default function AdminLayout({
               viewBox="0 0 24 24"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              className="text-primary"
+              className="text-accent"
             >
               <path
                 d="M12 2L2 7V17L12 22L22 17V7L12 2Z"
@@ -108,7 +104,7 @@ export default function AdminLayout({
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-              <path
+               <path
                 d="M17 4.5L7 9.5"
                 stroke="currentColor"
                 strokeWidth="1.5"
@@ -118,7 +114,7 @@ export default function AdminLayout({
               />
             </svg>
             <span className="ml-2 font-headline text-lg font-bold text-foreground">
-              Zizo Control
+              Nurse Station
             </span>
           </div>
         </SidebarHeader>
@@ -127,7 +123,7 @@ export default function AdminLayout({
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href} passHref>
-                    <SidebarMenuButton isActive={pathname === item.href}>
+                    <SidebarMenuButton isActive={pathname.startsWith(item.href)}>
                         <item.icon />
                         {item.label}
                     </SidebarMenuButton>
@@ -136,7 +132,7 @@ export default function AdminLayout({
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <SidebarSeparator />
+         <SidebarSeparator />
         <SidebarFooter>
             <SidebarMenu>
                 <SidebarMenuItem>
@@ -151,7 +147,7 @@ export default function AdminLayout({
       <SidebarInset>
         <header className="flex h-12 items-center justify-between border-b px-4 lg:justify-end">
           <SidebarTrigger className="lg:hidden" />
-          <p>Admin Controls</p>
+          <p>Nurse Station</p>
         </header>
         <div className="p-4">{children}</div>
       </SidebarInset>

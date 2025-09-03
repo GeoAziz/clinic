@@ -49,7 +49,7 @@ export function EditUserDialog({ user, onUserUpdated, isOpen, onOpenChange }: { 
   const initialForm: UserFormFields = {
     fullName: user.name,
     email: user.email,
-    role: user.role as 'patient' | 'doctor' | 'receptionist' | 'admin',
+    role: user.role as 'patient' | 'doctor' | 'nurse' | 'receptionist' | 'admin',
   };
 
   const {
@@ -65,6 +65,18 @@ export function EditUserDialog({ user, onUserUpdated, isOpen, onOpenChange }: { 
   } = useUserForm(initialForm);
 
   const [pending, setPending] = useState(false);
+  
+  // When dialog opens with a new user, reset the form fields
+  useEffect(() => {
+    if (isOpen) {
+       setFields({
+        fullName: user.name,
+        email: user.email,
+        role: user.role as 'patient' | 'doctor' | 'nurse' | 'receptionist' | 'admin',
+      });
+    }
+  }, [isOpen, user, setFields]);
+
 
   useEffect(() => {
     if (state.message) {
@@ -87,23 +99,21 @@ export function EditUserDialog({ user, onUserUpdated, isOpen, onOpenChange }: { 
   }, [state, toast, onUserUpdated, onOpenChange]);
 
   const handleOpenChange = (open: boolean) => {
+    onOpenChange(open);
     if (!open) {
-      setFields(initialForm);
       setErrors({});
       setTouched({});
-      state.message = '';
       setPending(false);
     }
-    onOpenChange(open);
   };
   
   const handleClientSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!validate()) {
-      e.preventDefault();
       return;
     }
     setPending(true);
-    // allow form to submit to server action
+    formAction(new FormData(e.currentTarget));
   };
 
   return (
@@ -115,7 +125,7 @@ export function EditUserDialog({ user, onUserUpdated, isOpen, onOpenChange }: { 
             Make changes to the user's profile here. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
-        <form className="space-y-4" action={formAction} onSubmit={handleClientSubmit} aria-live="polite" autoComplete="off">
+        <form className="space-y-4" onSubmit={handleClientSubmit} aria-live="polite" autoComplete="off">
           <input type="hidden" name="uid" value={user.id} />
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
@@ -148,13 +158,14 @@ export function EditUserDialog({ user, onUserUpdated, isOpen, onOpenChange }: { 
           </div>
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select name="role" required value={fields.role} onValueChange={val => handleChange('role', val)} disabled={pending}>
+            <Select name="role" required value={fields.role} onValueChange={val => handleChange('role', val as any)} disabled={pending}>
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="patient">Patient</SelectItem>
                 <SelectItem value="doctor">Doctor</SelectItem>
+                <SelectItem value="nurse">Nurse</SelectItem>
                 <SelectItem value="receptionist">Receptionist</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>

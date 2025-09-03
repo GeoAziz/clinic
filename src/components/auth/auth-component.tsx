@@ -41,10 +41,15 @@ const LoginForm = () => {
                     case 'admin':
                         router.push('/admin');
                         break;
-                    case 'patient':
-                        router.push('/patient/dashboard'); // Or a patient dashboard
+                    case 'doctor':
+                        router.push('/doctor/dashboard');
                         break;
-                    // Add other roles like doctor, nurse etc.
+                    case 'nurse':
+                        router.push('/nurse/dashboard');
+                        break;
+                    case 'patient':
+                        router.push('/patient/dashboard');
+                        break;
                     default:
                         router.push('/');
                 }

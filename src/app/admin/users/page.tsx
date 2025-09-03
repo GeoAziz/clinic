@@ -10,6 +10,8 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateUserDialog } from "@/components/admin/create-user-dialog";
 import { UserDetailsDialog } from "@/components/admin/user-details-dialog";
+import { EditUserDialog } from "@/components/admin/edit-user-dialog";
+import { DeactivateUserDialog } from "@/components/admin/deactivate-user-dialog";
 
 
 export type User = {
@@ -22,7 +24,7 @@ export type User = {
     createdAt: string;
 };
 
-const UserTable = ({ users }: { users: User[] }) => (
+const UserTable = ({ users, onUserSelect }: { users: User[], onUserSelect: (user: User, action: 'view' | 'edit' | 'deactivate') => void }) => (
     <Table>
         <TableHeader>
             <TableRow>
@@ -56,9 +58,9 @@ const UserTable = ({ users }: { users: User[] }) => (
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Edit</DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => onUserSelect(user, 'view')}>View Details</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => onUserSelect(user, 'edit')}>Edit</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => onUserSelect(user, 'deactivate')} className="text-destructive">Deactivate</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </TableCell>
@@ -73,8 +75,11 @@ export default function UserManagementPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isDeactivateOpen, setIsDeactivateOpen] = useState(false);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -96,18 +101,19 @@ export default function UserManagementPage() {
     }, []);
 
     const onUserChanged = () => {
-        // Re-fetch users list after a user is created/updated/deactivated
         fetchUsers();
+    }
+    
+    const handleUserSelect = (user: User, action: 'view' | 'edit' | 'deactivate') => {
+        setSelectedUser(user);
+        if (action === 'view') setIsDetailsOpen(true);
+        if (action === 'edit') setIsEditOpen(true);
+        if (action === 'deactivate') setIsDeactivateOpen(true);
     }
 
     const patients = users.filter((user: User) => user.role === 'patient');
-    const staff = users.filter((user: User) => ['doctor', 'receptionist'].includes(user.role));
+    const staff = users.filter((user: User) => ['doctor', 'nurse', 'receptionist'].includes(user.role));
     const admins = users.filter((user: User) => user.role === 'admin');
-
-    const handleViewDetails = (user: User) => {
-        setSelectedUser(user);
-        setIsDialogOpen(true);
-    };
 
     if (loading) return <div>Loading users...</div>;
     if (error) return <div>Error: {error}</div>;
@@ -134,21 +140,21 @@ export default function UserManagementPage() {
                         <TabsContent value="patients">
                             <Card className="glass-pane mt-4">
                                 <CardContent className="p-0">
-                                    <UserTable users={patients} />
+                                    <UserTable users={patients} onUserSelect={handleUserSelect} />
                                 </CardContent>
                             </Card>
                         </TabsContent>
                         <TabsContent value="staff">
                             <Card className="glass-pane mt-4">
                                 <CardContent className="p-0">
-                                    <UserTable users={staff} />
+                                    <UserTable users={staff} onUserSelect={handleUserSelect} />
                                 </CardContent>
                             </Card>
                         </TabsContent>
                         <TabsContent value="admins">
                             <Card className="glass-pane mt-4">
                                 <CardContent className="p-0">
-                                    <UserTable users={admins} />
+                                    <UserTable users={admins} onUserSelect={handleUserSelect} />
                                 </CardContent>
                             </Card>
                         </TabsContent>
@@ -156,12 +162,27 @@ export default function UserManagementPage() {
                 </CardContent>
             </Card>
 
-            {/* User Details Dialog */}
-            <UserDetailsDialog 
-                user={selectedUser}
-                open={isDialogOpen}
-                onOpenChange={setIsDialogOpen}
-            />
+            {selectedUser && (
+                <>
+                    <UserDetailsDialog 
+                        user={selectedUser}
+                        open={isDetailsOpen}
+                        onOpenChange={setIsDetailsOpen}
+                    />
+                    <EditUserDialog
+                        user={selectedUser}
+                        isOpen={isEditOpen}
+                        onOpenChange={setIsEditOpen}
+                        onUserUpdated={onUserChanged}
+                    />
+                    <DeactivateUserDialog
+                        user={selectedUser}
+                        isOpen={isDeactivateOpen}
+                        onOpenChange={setIsDeactivateOpen}
+                        onUserDeactivated={onUserChanged}
+                    />
+                </>
+            )}
         </>
     );
 }
