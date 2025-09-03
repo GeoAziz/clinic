@@ -57,6 +57,7 @@ export default function AppointmentBooking() {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const handledStateRef = useRef(false);
 
   const handleServiceSelection = (service: Service) => {
     setSelectedService(service);
@@ -88,6 +89,7 @@ export default function AppointmentBooking() {
   const handleBooking = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
+    handledStateRef.current = false; // Reset for the new submission
     
     if (!selectedService || !selectedDoctor || !date || !selectedTime) {
       toast({ variant: 'destructive', title: 'Error', description: 'Missing appointment details.' });
@@ -95,23 +97,15 @@ export default function AppointmentBooking() {
       return;
     }
     
-    const formData = new FormData();
-    formData.append('service', selectedService.name);
-    formData.append('doctorId', `doc_${selectedDoctor.id}`);
-    formData.append('doctorName', selectedDoctor.name);
-    formData.append('date', date.toISOString().split('T')[0]);
-    formData.append('time', selectedTime);
-    // In a real app, this would come from the logged-in user's context
-    formData.append('patientId', 'p_1'); 
-    formData.append('patientName', 'John Doe (Booked)');
-
+    const formData = new FormData(formRef.current!);
     formAction(formData);
   };
   
     // Effect to handle server action result
   useEffect(() => {
-    if (state.message) {
+    if (state.message && !handledStateRef.current) {
       setIsSubmitting(false);
+       handledStateRef.current = true; // Mark state as handled
       if (state.message.includes('successfully')) {
         toast({
           title: '🚀 Appointment Confirmed!',
@@ -122,6 +116,7 @@ export default function AppointmentBooking() {
         setSelectedDoctor(null);
         setDate(new Date());
         setSelectedTime(null);
+        formRef.current?.reset();
       } else {
         toast({
           variant: 'destructive',
@@ -150,6 +145,14 @@ export default function AppointmentBooking() {
         </div>
       </CardHeader>
       <form ref={formRef}>
+      {selectedService && <input type="hidden" name="service" value={selectedService.name} />}
+      {selectedDoctor && <input type="hidden" name="doctorId" value={`doc_${selectedDoctor.id}`} />}
+      {selectedDoctor && <input type="hidden" name="doctorName" value={selectedDoctor.name} />}
+      {date && <input type="hidden" name="date" value={date.toISOString().split('T')[0]} />}
+      {selectedTime && <input type="hidden" name="time" value={selectedTime} />}
+      <input type="hidden" name="patientId" value="p_1" />
+      <input type="hidden" name="patientName" value="John Doe (Booked)" />
+
       <CardContent className="min-h-[400px]">
         {step === 1 && (
             <div>
@@ -202,7 +205,7 @@ export default function AppointmentBooking() {
                     <h3 className="mb-4 text-xl font-semibold text-center font-headline">4. Pick Time</h3>
                     <div className="grid grid-cols-3 gap-2">
                         {timeSlots.map(time => (
-                            <Button key={time} variant={selectedTime === time ? 'default' : 'outline'} onClick={() => setSelectedTime(time)}
+                            <Button key={time} type="button" variant={selectedTime === time ? 'default' : 'outline'} onClick={() => setSelectedTime(time)}
                                     className={cn('neon-border', selectedTime === time && 'animate-pulse-glow')}>
                                 {time}
                             </Button>
@@ -229,20 +232,20 @@ export default function AppointmentBooking() {
       </CardContent>
       <CardFooter className="flex justify-between">
         {step > 1 && (
-            <Button variant="outline" onClick={handlePrevStep} className="neon-border">
+            <Button variant="outline" onClick={handlePrevStep} className="neon-border" type="button">
                 <ArrowLeft className="mr-2"/>
                 Back
             </Button>
         )}
         <div className="flex-grow"></div>
         {step < 4 && (
-            <Button onClick={handleNextStep} className="btn-gradient animate-pulse-glow">
+            <Button onClick={handleNextStep} className="btn-gradient animate-pulse-glow" type="button">
                 Next
                 <ArrowRight className="ml-2"/>
             </Button>
         )}
         {step === 4 && (
-             <Button onClick={handleBooking} className="btn-gradient animate-pulse-glow" disabled={isSubmitting}>
+             <Button onClick={handleBooking} className="btn-gradient animate-pulse-glow" disabled={isSubmitting} type="submit">
                 {isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <Check className="mr-2"/>}
                 Confirm Booking
             </Button>
