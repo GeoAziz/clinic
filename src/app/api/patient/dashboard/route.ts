@@ -27,11 +27,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Firebase Admin DB is not initialized.' }, { status: 500 });
     }
 
-    // In a real app, you'd get the patient ID from their authenticated session
-    // const patientId = await getUserIdFromToken();
-    // For now, we'll use a mock ID. Replace with real auth later.
-    const patientId = "p_1";
-
+    const patientId = await getUserIdFromToken();
     if (!patientId) {
          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

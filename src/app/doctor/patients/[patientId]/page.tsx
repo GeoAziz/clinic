@@ -1,32 +1,84 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, FileText, MessageSquare } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, MessageSquare, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import { AddConsultationNotesDialog } from '@/components/doctor/add-consultation-notes-dialog';
 import type { Appointment } from '@/app/doctor/appointments/page';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Mock data - in a real app, this would be fetched from a database
-const patientsData: { [key: string]: any } = {
-  p_1: { id: 'p_1', name: 'John Doe', age: 34, lastVisit: '2024-10-28', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', details: { bloodType: 'O+', allergies: 'Peanuts', conditions: 'Hypertension' }, upcomingAppointments: [{ date: '2024-11-15', time: '10:00 AM', service: 'Follow-up' }], labResults: [{ id: 'lab_1', testName: 'Complete Blood Count', date: '2024-10-28', status: 'Requires Review' }] },
-  p_2: { id: 'p_2', name: 'Jane Smith', age: 45, lastVisit: '2024-10-20', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704e', details: { bloodType: 'A-', allergies: 'None', conditions: 'None' }, upcomingAppointments: [], labResults: [{ id: 'lab_2', testName: 'Lipid Panel', date: '2024-10-28', status: 'Completed' }] },
-  p_3: { id: 'p_3', name: 'Sam Wilson', age: 28, lastVisit: '2024-09-15', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704f', details: { bloodType: 'B+', allergies: 'Pollen', conditions: 'Asthma' }, upcomingAppointments: [{ date: '2024-11-20', time: '02:00 PM', service: 'Annual Checkup' }], labResults: [] },
-};
+const PatientChartSkeleton = () => (
+    <div className="space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <Card className="glass-pane">
+            <CardHeader className="flex flex-row items-center gap-6 space-y-0">
+                <Skeleton className="w-24 h-24 rounded-full" />
+                <div className="flex-grow space-y-2">
+                    <Skeleton className="h-10 w-1/2" />
+                    <Skeleton className="h-6 w-3/4" />
+                    <div className="mt-2 flex gap-2">
+                        <Skeleton className="h-9 w-28" />
+                        <Skeleton className="h-9 w-40" />
+                        <Skeleton className="h-9 w-36" />
+                    </div>
+                </div>
+            </CardHeader>
+        </Card>
+         <div className="grid md:grid-cols-3 gap-6">
+            <Skeleton className="h-40 col-span-1" />
+            <Skeleton className="h-40 col-span-2" />
+        </div>
+        <Skeleton className="h-64 w-full" />
+    </div>
+);
+
 
 export default function PatientChartPage({ params }: { params: { patientId: string } }) {
-    const patientId = params.patientId;
-    const patient = patientsData[patientId];
-    
+    const { patientId } = params;
+    const [patient, setPatient] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
     const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
+    const { toast } = useToast();
 
+    useEffect(() => {
+        if (!patientId) return;
+
+        const fetchPatientData = async () => {
+            setLoading(true);
+            try {
+                const res = await fetch(`/api/doctor/patients/${patientId}`);
+                if (res.status === 404) {
+                    notFound();
+                }
+                if (!res.ok) {
+                    throw new Error('Failed to fetch patient data');
+                }
+                const data = await res.json();
+                setPatient(data);
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch patient data.' });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPatientData();
+    }, [patientId, toast]);
+
+
+    if (loading) {
+        return <PatientChartSkeleton />;
+    }
+    
     if (!patient) {
-        notFound();
+        return null; // Or some other placeholder
     }
     
     const placeholderAppointment: Appointment = {
@@ -53,7 +105,7 @@ export default function PatientChartPage({ params }: { params: { patientId: stri
                 <CardHeader className="flex flex-row items-center gap-6 space-y-0">
                      <Avatar className="w-24 h-24 border-4 border-primary/50">
                         <AvatarImage src={patient.avatar} />
-                        <AvatarFallback>{patient.name.substring(0,2)}</AvatarFallback>
+                        <AvatarFallback>{patient.name?.substring(0,2)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-grow">
                         <CardTitle className="font-headline text-4xl">{patient.name}</CardTitle>
@@ -88,11 +140,11 @@ export default function PatientChartPage({ params }: { params: { patientId: stri
                         <CardTitle>Upcoming Appointments</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {patient.upcomingAppointments.length > 0 ? (
+                        {patient.upcomingAppointments?.length > 0 ? (
                              <ul className="space-y-2">
                                 {patient.upcomingAppointments.map((apt: any, i: number) => (
                                     <li key={i} className="flex justify-between items-center bg-background/50 p-2 rounded-md">
-                                        <span>{apt.date} at {apt.time} - {apt.service}</span>
+                                        <span>{new Date(apt.date).toLocaleDateString()} at {apt.time} - {apt.service}</span>
                                         <Button size="sm" variant="ghost" asChild>
                                           <Link href="/doctor/appointments">Details</Link>
                                         </Button>
@@ -110,12 +162,12 @@ export default function PatientChartPage({ params }: { params: { patientId: stri
                     <CardTitle>Recent Lab Results</CardTitle>
                 </CardHeader>
                 <CardContent>
-                     {patient.labResults.length > 0 ? (
+                     {patient.labResults?.length > 0 ? (
                              <ul className="space-y-2">
-                                {patient.labResults.map((lab: any, i: number) => (
-                                    <li key={i} className="flex justify-between items-center bg-background/50 p-2 rounded-md">
+                                {patient.labResults.map((lab: any) => (
+                                    <li key={lab.id} className="flex justify-between items-center bg-background/50 p-2 rounded-md">
                                         <div>
-                                            <p className="font-semibold">{lab.testName} ({lab.date})</p>
+                                            <p className="font-semibold">{lab.testName} ({new Date(lab.date).toLocaleDateString()})</p>
                                         </div>
                                         <div className="flex items-center gap-4">
                                             <Badge variant={lab.status === 'Requires Review' ? 'destructive' : 'default'}

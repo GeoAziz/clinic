@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { auth } from '@/lib/firebase/client';
 
 type Patient = {
   id: string;
@@ -25,9 +26,19 @@ export default function DoctorPatientsPage() {
 
     useEffect(() => {
         const fetchPatients = async () => {
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                setLoading(false);
+                toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
+                return;
+            }
+
             try {
                 setLoading(true);
-                const response = await fetch('/api/doctor/patients');
+                const token = await currentUser.getIdToken();
+                const response = await fetch('/api/doctor/patients', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (!response.ok) {
                     throw new Error('Failed to fetch patients');
                 }
@@ -44,7 +55,15 @@ export default function DoctorPatientsPage() {
             }
         };
 
-        fetchPatients();
+        const unsubscribe = auth.onAuthStateChanged(user => {
+            if (user) {
+                fetchPatients();
+            } else {
+                setLoading(false);
+            }
+        });
+
+        return () => unsubscribe();
     }, [toast]);
 
     return (
@@ -58,6 +77,10 @@ export default function DoctorPatientsPage() {
                      <div className="flex items-center justify-center h-64">
                         <Loader2 className="h-16 w-16 animate-spin text-primary" />
                         <p className="ml-4 text-lg">Loading Patients...</p>
+                    </div>
+                ) : patients.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                        You have no patients assigned to you.
                     </div>
                 ) : (
                 <Table>

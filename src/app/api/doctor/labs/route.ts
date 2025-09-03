@@ -1,9 +1,23 @@
 
 import { getAdmin } from '@/lib/firebase/admin';
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 
-// In a real app, you would get this from the authenticated user's session.
-const MOCK_LOGGED_IN_DOCTOR_UID = "some-doctor-uid"; 
+async function getUserIdFromToken(): Promise<string | null> {
+  const { adminAuth } = await getAdmin();
+  if (!adminAuth) return null;
+  const authHeader = headers().get('Authorization');
+  if (!authHeader) return null;
+  const token = authHeader.split('Bearer ')[1];
+  if (!token) return null;
+  try {
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    return decodedToken.uid;
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    return null;
+  }
+}
 
 export async function GET() {
   try {
@@ -12,17 +26,18 @@ export async function GET() {
       return NextResponse.json({ error: 'Firebase Admin DB is not initialized.' }, { status: 500 });
     }
     
-    // This is where you would get the real doctor's UID from the session
-    const doctorId = MOCK_LOGGED_IN_DOCTOR_UID;
+    const doctorId = await getUserIdFromToken();
+    if (!doctorId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // In a real implementation, you would query Firestore.
+    // Since labs are not directly assigned to doctors, we fetch all labs
+    // In a real-world scenario, you might have a linking collection or field.
     const labResultsSnapshot = await adminDb.collection('labResults')
-        .where('doctorId', '==', doctorId)
         .orderBy('date', 'desc')
         .get();
 
     if (labResultsSnapshot.empty) {
-        console.log(`No lab results found for doctor UID: ${doctorId}`);
         return NextResponse.json([]);
     }
 

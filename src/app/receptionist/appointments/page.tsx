@@ -9,6 +9,7 @@ import { MoreHorizontal, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import * as admin from 'firebase-admin';
 
 type Appointment = {
     id: string;
@@ -17,7 +18,7 @@ type Appointment = {
     service: string;
     date: string;
     time: string;
-    status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
+    status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled' | 'Checked-in';
 };
 
 export default function ReceptionistAppointmentPage() {
@@ -25,26 +26,54 @@ export default function ReceptionistAppointmentPage() {
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
 
+    const fetchAppointments = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/admin/appointments');
+            if (!res.ok) throw new Error('Failed to fetch appointments');
+            const data = await res.json();
+            setAppointments(data);
+        } catch (err: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Error fetching appointments',
+                description: err.message,
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
     useEffect(() => {
-        const fetchAppointments = async () => {
-            setLoading(true);
-            try {
-                const res = await fetch('/api/admin/appointments');
-                if (!res.ok) throw new Error('Failed to fetch appointments');
-                const data = await res.json();
-                setAppointments(data);
-            } catch (err: any) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Error fetching appointments',
-                    description: err.message,
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchAppointments();
     }, [toast]);
+
+    const handleCheckIn = async (appointmentId: string) => {
+        try {
+            const res = await fetch(`/api/receptionist/check-in`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ appointmentId })
+            });
+
+            if(!res.ok) throw new Error("Failed to check-in");
+
+            toast({
+                title: "Checked-in!",
+                description: "Patient has been checked in."
+            });
+            fetchAppointments(); // Refresh the list
+        } catch (err: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: err.message
+            });
+        }
+    }
 
     return (
         <Card className="glass-pane w-full">
@@ -89,7 +118,10 @@ export default function ReceptionistAppointmentPage() {
                                         apt.status === 'Pending' ? 'secondary' :
                                         apt.status === 'Cancelled' ? 'destructive' :
                                         'outline'
-                                    } className={apt.status === 'Confirmed' ? 'bg-green-500/20 text-green-300 border-green-500/50' : ''}>
+                                    } className={
+                                        apt.status === 'Confirmed' ? 'bg-green-500/20 text-green-300 border-green-500/50' : 
+                                        apt.status === 'Checked-in' ? 'bg-blue-500/20 text-blue-300 border-blue-500/50' : ''
+                                    }>
                                         {apt.status}
                                     </Badge>
                                 </TableCell>
@@ -101,7 +133,9 @@ export default function ReceptionistAppointmentPage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent>
-                                            <DropdownMenuItem>Check-in Patient</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleCheckIn(apt.id)} disabled={apt.status !== 'Confirmed'}>
+                                                Check-in Patient
+                                            </DropdownMenuItem>
                                             <DropdownMenuItem>Reschedule</DropdownMenuItem>
                                             <DropdownMenuItem className="text-destructive">Cancel</DropdownMenuItem>
                                         </DropdownMenuContent>

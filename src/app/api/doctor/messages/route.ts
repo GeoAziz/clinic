@@ -4,27 +4,41 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import * as admin from 'firebase-admin';
 
-// In a real app, you would get this from the authenticated user's session.
-const MOCK_LOGGED_IN_DOCTOR_UID = "some-doctor-uid"; 
+
+async function getUserIdFromToken(): Promise<string | null> {
+  const { adminAuth } = await getAdmin();
+  if (!adminAuth) return null;
+  const authHeader = headers().get('Authorization');
+  if (!authHeader) return null;
+  const token = authHeader.split('Bearer ')[1];
+  if (!token) return null;
+  try {
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    return decodedToken.uid;
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    return null;
+  }
+}
 
 
 export async function GET() {
   try {
-    const { adminDb, adminAuth } = await getAdmin();
-    if (!adminDb || !adminAuth) {
+    const { adminDb } = await getAdmin();
+    if (!adminDb) {
       return NextResponse.json({ error: 'Firebase Admin DB is not initialized.' }, { status: 500 });
     }
     
-    // In a real implementation, you would verify the user's token
-    // and get their UID from there. For now, we use a mock UID.
-    const doctorId = MOCK_LOGGED_IN_DOCTOR_UID;
+    const doctorId = await getUserIdFromToken();
+    if (!doctorId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const convosSnapshot = await adminDb.collection('conversations')
         .where('doctorId', '==', doctorId)
         .get();
 
     if (convosSnapshot.empty) {
-        console.log(`No conversations found for doctor UID: ${doctorId}`);
         return NextResponse.json({});
     }
 
