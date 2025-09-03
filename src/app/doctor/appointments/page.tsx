@@ -1,29 +1,58 @@
 
 'use client';
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AddConsultationNotesDialog } from "@/components/doctor/add-consultation-notes-dialog";
+import { useToast } from "@/hooks/use-toast";
 
-
-const appointments = [
-    { id: 'apt_1', patient: 'John Doe', patientId: 'p_1', service: 'Consultation', date: '2024-10-28', time: '10:00 AM', status: 'Confirmed' },
-    { id: 'apt_2', patient: 'Jane Smith', patientId: 'p_2', service: 'Follow-up', date: '2024-10-28', time: '11:30 AM', status: 'Confirmed' },
-    { id: 'apt_3', patient: 'Sam Wilson', patientId: 'p_3', service: 'Consultation', date: '2024-10-29', time: '02:00 PM', status: 'Completed' },
-];
-
-export type Appointment = typeof appointments[0];
+export type Appointment = { 
+    id: string; 
+    patientName: string; 
+    patientId: string; 
+    service: string; 
+    date: string; 
+    time: string; 
+    status: 'Confirmed' | 'Completed' | 'Pending' | 'Cancelled';
+};
 
 export default function DoctorAppointmentsPage() {
     const router = useRouter();
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { toast } = useToast();
+
     const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+
+    useEffect(() => {
+        const fetchAppointments = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch('/api/doctor/appointments');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch appointments');
+                }
+                const data = await response.json();
+                setAppointments(data);
+            } catch (error) {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Could not fetch appointment data.'
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAppointments();
+    }, [toast]);
 
     const handleOpenNotesDialog = (appointment: Appointment) => {
         setSelectedAppointment(appointment);
@@ -42,6 +71,16 @@ export default function DoctorAppointmentsPage() {
                 </div>
             </CardHeader>
             <CardContent>
+                {loading ? (
+                    <div className="flex items-center justify-center h-64">
+                        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+                        <p className="ml-4 text-lg">Loading Appointments...</p>
+                    </div>
+                ) : appointments.length === 0 ? (
+                     <div className="text-center py-8 text-muted-foreground">
+                        You have no appointments scheduled.
+                    </div>
+                ) : (
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -55,13 +94,14 @@ export default function DoctorAppointmentsPage() {
                     <TableBody>
                         {appointments.map(apt => (
                             <TableRow key={apt.id}>
-                                <TableCell className="font-medium">{apt.patient}</TableCell>
+                                <TableCell className="font-medium">{apt.patientName}</TableCell>
                                 <TableCell>{apt.service}</TableCell>
                                 <TableCell>{apt.date} at {apt.time}</TableCell>
                                 <TableCell>
                                     <Badge variant={
                                         apt.status === 'Confirmed' ? 'default' :
                                         apt.status === 'Completed' ? 'secondary' :
+                                        apt.status === 'Cancelled' ? 'destructive' :
                                         'outline'
                                     } className={apt.status === 'Confirmed' ? 'bg-green-500/20 text-green-300 border-green-500/50' : ''}>
                                         {apt.status}
@@ -88,6 +128,7 @@ export default function DoctorAppointmentsPage() {
                         ))}
                     </TableBody>
                 </Table>
+                )}
             </CardContent>
         </Card>
 

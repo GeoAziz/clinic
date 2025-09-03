@@ -18,7 +18,7 @@ import { useState } from 'react';
 
 
 interface AddConsultationNotesDialogProps {
-  appointment: Appointment | null;
+  appointment: Omit<Appointment, 'patient'> & { patient?: string, patientName?: string } | null;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -31,7 +31,7 @@ export function AddConsultationNotesDialog({ appointment, isOpen, onOpenChange }
     console.log(`Saving notes for appointment ${appointment?.id}: ${notes}`);
     toast({
       title: 'Notes Saved!',
-      description: `Consultation notes for ${appointment?.patient} have been saved.`,
+      description: `Consultation notes for ${appointment?.patientName} have been saved.`,
     });
     onOpenChange(false);
     setNotes('');
@@ -45,7 +45,7 @@ export function AddConsultationNotesDialog({ appointment, isOpen, onOpenChange }
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Add Consultation Notes</DialogTitle>
           <DialogDescription>
-            For appointment with <span className="font-semibold text-primary">{appointment.patient}</span> on {appointment.date} at {appointment.time}.
+            For appointment with <span className="font-semibold text-primary">{appointment.patientName}</span> on {appointment.date} at {appointment.time}.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
