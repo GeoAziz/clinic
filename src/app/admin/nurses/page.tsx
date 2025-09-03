@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, PlusCircle, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Nurse {
   uid: string;
@@ -189,7 +190,16 @@ export default function NursesPage() {
                             </div>
                             <div className="grid flex-grow gap-1.5">
                                 <Label htmlFor={`shift-${idx}`}>Shift</Label>
-                                <Input id={`shift-${idx}`} type="text" placeholder="e.g. Morning" value={s.shift} onChange={e => { const u = [...newSchedule]; u[idx].shift = e.target.value; setNewSchedule(u); }} />
+                                <Select value={s.shift} onValueChange={val => { const u = [...newSchedule]; u[idx].shift = val; setNewSchedule(u); }}>
+                                  <SelectTrigger id={`shift-${idx}`}>
+                                    <SelectValue placeholder="Select shift" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Morning">Morning</SelectItem>
+                                    <SelectItem value="Afternoon">Afternoon</SelectItem>
+                                    <SelectItem value="Night">Night</SelectItem>
+                                  </SelectContent>
+                                </Select>
                             </div>
                             <Button size="icon" variant="destructive" onClick={() => setNewSchedule(newSchedule.filter((_, i) => i !== idx))}>
                                 <Trash2 className="h-4 w-4"/>
