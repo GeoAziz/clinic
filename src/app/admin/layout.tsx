@@ -11,6 +11,8 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
+  SidebarFooter,
+  SidebarSeparator
 } from '@/components/ui/sidebar';
 import {
   LineChart,
@@ -19,9 +21,13 @@ import {
   Calendar,
   LayoutDashboard,
   Shield,
+  LogOut,
 } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { auth } from '@/lib/firebase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 export default function AdminLayout({
   children,
@@ -29,6 +35,8 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
 
   const menuItems = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -38,6 +46,24 @@ export default function AdminLayout({
     { href: '/admin/security', label: 'Security & Logs', icon: Shield },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
   ];
+  
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+      router.push('/auth');
+    } catch (error) {
+      console.error('Logout failed', error);
+      toast({
+        variant: 'destructive',
+        title: 'Logout Failed',
+        description: 'An error occurred while logging out. Please try again.',
+      });
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -108,6 +134,17 @@ export default function AdminLayout({
             ))}
           </SidebarMenu>
         </SidebarContent>
+        <SidebarSeparator />
+        <SidebarFooter>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <Button onClick={handleLogout} variant="ghost" className="w-full justify-start gap-2 p-2 text-left h-8">
+                        <LogOut />
+                        Logout
+                    </Button>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="flex h-12 items-center justify-between border-b px-4 lg:justify-end">
