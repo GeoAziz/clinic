@@ -6,13 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { LabReportDialog } from '@/components/doctor/lab-report-dialog';
 
 type LabResult = { 
   id: string;
@@ -20,18 +14,21 @@ type LabResult = {
   testName: string;
   date: string;
   status: 'Requires Review' | 'Completed' | 'Pending';
+  report: string;
 };
 
 const labResults: LabResult[] = [
-    { id: 'lab_1', patientName: 'John Doe', testName: 'Complete Blood Count', date: '2024-10-28', status: 'Requires Review' },
-    { id: 'lab_2', patientName: 'Jane Smith', testName: 'Lipid Panel', date: '2024-10-28', status: 'Completed' },
-    { id: 'lab_3', patientName: 'Sam Wilson', testName: 'Thyroid Panel', date: '2024-10-27', status: 'Completed' },
-    { id: 'lab_4', patientName: 'Bucky Barnes', testName: 'Glucose Tolerance Test', date: '2024-10-26', status: 'Pending' },
+    { id: 'lab_1', patientName: 'John Doe', testName: 'Complete Blood Count', date: '2024-10-28', status: 'Requires Review', report: 'CBC shows slightly elevated white blood cell count, suggesting a possible infection. Platelets and hemoglobin are within normal ranges.' },
+    { id: 'lab_2', patientName: 'Jane Smith', testName: 'Lipid Panel', date: '2024-10-28', status: 'Completed', report: 'Total cholesterol is 190 mg/dL, LDL is 110 mg/dL, HDL is 60 mg/dL. All values are within the desirable range.' },
+    { id: 'lab_3', patientName: 'Sam Wilson', testName: 'Thyroid Panel', date: '2024-10-27', status: 'Completed', report: 'TSH level is 2.5 mIU/L. T3 and T4 levels are normal. Thyroid function appears normal.' },
+    { id: 'lab_4', patientName: 'Bucky Barnes', testName: 'Glucose Tolerance Test', date: '2024-10-26', status: 'Pending', report: 'Results are pending analysis.' },
 ];
 
 export default function DoctorLabsPage() {
     const [results, setResults] = useState<LabResult[]>(labResults);
     const [sortConfig, setSortConfig] = useState<{ key: keyof LabResult, direction: 'asc' | 'desc' } | null>(null);
+    const [selectedResult, setSelectedResult] = useState<LabResult | null>(null);
+    const [isReportOpen, setIsReportOpen] = useState(false);
 
     const sortedResults = [...results].sort((a, b) => {
         if (!sortConfig) return 0;
@@ -52,63 +49,77 @@ export default function DoctorLabsPage() {
       if (!sortConfig || sortConfig.key !== key) return null;
       return sortConfig.direction === 'asc' ? '▲' : '▼';
     }
+
+    const handleViewReport = (result: LabResult) => {
+        setSelectedResult(result);
+        setIsReportOpen(true);
+    };
     
     return (
-        <Card className="glass-pane w-full">
-            <CardHeader>
-                <CardTitle className="font-headline text-3xl">Lab Results</CardTitle>
-                <CardDescription>Review and manage patient lab results.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>
-                              <Button variant="ghost" onClick={() => requestSort('patientName')}>
-                                Patient {getSortIndicator('patientName')}
-                              </Button>
-                            </TableHead>
-                            <TableHead>
-                              <Button variant="ghost" onClick={() => requestSort('testName')}>
-                                Test Name {getSortIndicator('testName')}
-                              </Button>
-                            </TableHead>
-                            <TableHead>
-                              <Button variant="ghost" onClick={() => requestSort('date')}>
-                                Date {getSortIndicator('date')}
-                              </Button>
-                            </TableHead>
-                            <TableHead>
-                              <Button variant="ghost" onClick={() => requestSort('status')}>
-                                Status {getSortIndicator('status')}
-                              </Button>
-                            </TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {sortedResults.map(result => (
-                            <TableRow key={result.id}>
-                                <TableCell className="font-medium">{result.patientName}</TableCell>
-                                <TableCell>{result.testName}</TableCell>
-                                <TableCell>{result.date}</TableCell>
-                                <TableCell>
-                                    <Badge variant={
-                                        result.status === 'Requires Review' ? 'destructive' :
-                                        result.status === 'Completed' ? 'default' :
-                                        'secondary'
-                                    } className={result.status === 'Completed' ? 'bg-green-500/20 text-green-300 border-green-500/50' : ''}>
-                                        {result.status}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Button variant="outline" size="sm">View Report</Button>
-                                </TableCell>
+        <>
+            <Card className="glass-pane w-full">
+                <CardHeader>
+                    <CardTitle className="font-headline text-3xl">Lab Results</CardTitle>
+                    <CardDescription>Review and manage patient lab results.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>
+                                  <Button variant="ghost" onClick={() => requestSort('patientName')}>
+                                    Patient {getSortIndicator('patientName')}
+                                  </Button>
+                                </TableHead>
+                                <TableHead>
+                                  <Button variant="ghost" onClick={() => requestSort('testName')}>
+                                    Test Name {getSortIndicator('testName')}
+                                  </Button>
+                                </TableHead>
+                                <TableHead>
+                                  <Button variant="ghost" onClick={() => requestSort('date')}>
+                                    Date {getSortIndicator('date')}
+                                  </Button>
+                                </TableHead>
+                                <TableHead>
+                                  <Button variant="ghost" onClick={() => requestSort('status')}>
+                                    Status {getSortIndicator('status')}
+                                  </Button>
+                                </TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
+                        </TableHeader>
+                        <TableBody>
+                            {sortedResults.map(result => (
+                                <TableRow key={result.id}>
+                                    <TableCell className="font-medium">{result.patientName}</TableCell>
+                                    <TableCell>{result.testName}</TableCell>
+                                    <TableCell>{result.date}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={
+                                            result.status === 'Requires Review' ? 'destructive' :
+                                            result.status === 'Completed' ? 'default' :
+                                            'secondary'
+                                        } className={result.status === 'Completed' ? 'bg-green-500/20 text-green-300 border-green-500/50' : ''}>
+                                            {result.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="outline" size="sm" onClick={() => handleViewReport(result)}>View Report</Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+            {selectedResult && (
+                <LabReportDialog 
+                    result={selectedResult}
+                    isOpen={isReportOpen}
+                    onOpenChange={setIsReportOpen}
+                />
+            )}
+        </>
     );
 }
