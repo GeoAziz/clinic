@@ -47,6 +47,9 @@ const LoginForm = () => {
                     case 'nurse':
                         router.push('/nurse/dashboard');
                         break;
+                    case 'receptionist':
+                        router.push('/receptionist/dashboard');
+                        break;
                     case 'patient':
                         router.push('/patient/dashboard');
                         break;
