@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 
 // Mock data - in a real app, this would be fetched from a database
 const patientsData: { [key: string]: any } = {
@@ -16,8 +16,10 @@ const patientsData: { [key: string]: any } = {
   p_3: { id: 'p_3', name: 'Sam Wilson', age: 28, lastVisit: '2024-09-15', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704f', details: { bloodType: 'B+', allergies: 'Pollen', conditions: 'Asthma' }, upcomingAppointments: [{ date: '2024-11-20', time: '02:00 PM', service: 'Annual Checkup' }], labResults: [] },
 };
 
-export default function PatientChartPage({ params }: { params: { patientId: string } }) {
-    const patient = patientsData[params.patientId];
+export default function PatientChartPage() {
+    const params = useParams();
+    const patientId = params.patientId as string;
+    const patient = patientsData[patientId];
 
     if (!patient) {
         notFound();
