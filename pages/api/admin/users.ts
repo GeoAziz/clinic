@@ -19,6 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         role: data.role,
         status: 'Active', // Placeholder
         lastLogin: data.lastLogin ? new Date(data.lastLogin.seconds * 1000).toLocaleDateString() : 'N/A',
+        createdAt: data.createdAt || new Date().toISOString(),
       };
     });
     return res.status(200).json(users);
