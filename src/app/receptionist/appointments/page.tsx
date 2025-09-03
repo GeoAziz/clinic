@@ -66,7 +66,8 @@ export default function ReceptionistAppointmentPage() {
                 description: "Patient has been checked in."
             });
             fetchAppointments(); // Refresh the list
-        } catch (err: any) {
+        } catch (err: any)
+ {
             toast({
                 variant: 'destructive',
                 title: 'Error',

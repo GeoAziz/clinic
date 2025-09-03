@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, RefreshCw } from "lucide-react";
+import { Copy, RefreshCw, Loader2 } from "lucide-react";
 
 interface SetupLink {
     id: string;
@@ -50,6 +50,11 @@ function SecurityLogs() {
 
     return (
         <div>
+             <div className="flex justify-end mb-4">
+                <Button onClick={fetchLogs} variant="outline" size="icon" disabled={loading}>
+                   {loading ? <Loader2 className="h-4 w-4 animate-spin"/> : <RefreshCw className="h-4 w-4" />}
+                </Button>
+            </div>
             {loading ? (
                 <div className="text-center py-8">Loading security logs...</div>
             ) : logs.length === 0 ? (
@@ -71,7 +76,7 @@ function SecurityLogs() {
                                 <TableCell>{log.user || log.email || '-'}</TableCell>
                                 <TableCell>{log.action || '-'}</TableCell>
                                 <TableCell>{log.ip || '-'}</TableCell>
-                                <TableCell>{log.timestamp ? new Date(log.timestamp).toLocaleString() : '-'}</TableCell>
+                                <TableCell>{log.timestamp ? new Date(log.timestamp.seconds * 1000).toLocaleString() : '-'}</TableCell>
                                 <TableCell>
                                     <Badge variant={log.status === 'Success' ? 'default' : 'destructive'}
                                            className={log.status === 'Success' ? 'bg-green-500/20 text-green-300 border-green-500/50' : ''}>
