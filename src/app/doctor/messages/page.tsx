@@ -10,7 +10,7 @@ import { Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const conversations = {
+const initialConversations = {
   p_1: {
     name: 'John Doe',
     avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d',
@@ -28,17 +28,34 @@ const conversations = {
   },
 };
 
-type ConversationId = keyof typeof conversations;
+type ConversationId = keyof typeof initialConversations;
+type Message = { from: 'patient' | 'doctor'; text: string };
+type Conversations = Record<ConversationId, {
+    name: string;
+    avatar: string;
+    messages: Message[];
+}>
 
 export default function DoctorMessagesPage() {
+    const [conversations, setConversations] = useState<Conversations>(initialConversations);
     const [selectedConversation, setSelectedConversation] = useState<ConversationId>('p_1');
     const [newMessage, setNewMessage] = useState('');
 
     const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
-        if (newMessage.trim()) {
-            console.log(`Sending message to ${selectedConversation}: ${newMessage}`);
-            // Here you would typically update the state and call an API
+        if (newMessage.trim() && selectedConversation) {
+            const newMsg: Message = { from: 'doctor', text: newMessage.trim() };
+            
+            setConversations(prev => {
+                const updatedConvo = {
+                    ...prev[selectedConversation],
+                    messages: [...prev[selectedConversation].messages, newMsg]
+                };
+                return {
+                    ...prev,
+                    [selectedConversation]: updatedConvo
+                };
+            });
             setNewMessage('');
         }
     };
