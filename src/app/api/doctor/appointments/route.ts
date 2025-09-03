@@ -5,14 +5,6 @@ import { NextResponse } from 'next/server';
 // In a real app, you would get this from the authenticated user's session.
 const MOCK_LOGGED_IN_DOCTOR_UID = "some-doctor-uid"; 
 
-// Mock data, assuming you have an 'appointments' collection in Firestore
-const mockAppointments = [
-    { id: 'apt_1', patientName: 'John Doe', patientId: 'p_1', doctorId: 'some-doctor-uid', service: 'Consultation', date: '2024-10-28', time: '10:00 AM', status: 'Confirmed' },
-    { id: 'apt_2', patientName: 'Jane Smith', patientId: 'p_2', doctorId: 'some-doctor-uid', service: 'Follow-up', date: '2024-10-28', time: '11:30 AM', status: 'Confirmed' },
-    { id: 'apt_3', patientName: 'Sam Wilson', patientId: 'p_3', doctorId: 'another-doctor-uid', service: 'Consultation', date: '2024-10-29', time: '02:00 PM', status: 'Completed' },
-];
-
-
 export async function GET() {
   try {
     const { adminDb } = await getAdmin();
@@ -24,21 +16,20 @@ export async function GET() {
     const doctorId = MOCK_LOGGED_IN_DOCTOR_UID;
 
     // In a real implementation, you would query Firestore.
-    // For now, we filter our mock data.
-    const appointments = mockAppointments.filter(apt => apt.doctorId === doctorId);
-
-    /* 
-    // Example of a real Firestore query:
     const appointmentsSnapshot = await adminDb.collection('appointments')
         .where('doctorId', '==', doctorId)
         .orderBy('date', 'desc')
         .get();
 
+    if (appointmentsSnapshot.empty) {
+        console.log(`No appointments found for doctor UID: ${doctorId}`);
+        return NextResponse.json([]);
+    }
+
     const appointments = appointmentsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
     }));
-    */
     
     return NextResponse.json(appointments);
 
