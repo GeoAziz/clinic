@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, PlusCircle, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { User } from '../users/page';
 
 interface Nurse {
   uid: string;
@@ -24,6 +26,7 @@ interface Nurse {
 
 export default function NursesPage() {
   const [nurses, setNurses] = useState<Nurse[]>([]);
+  const [patients, setPatients] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedNurse, setSelectedNurse] = useState<Nurse | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -34,33 +37,49 @@ export default function NursesPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchNurses = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const res = await fetch("/api/admin/nurses");
-      if (res.ok) {
-        const data = await res.json();
-        setNurses(data);
+      try {
+        const [nursesRes, usersRes] = await Promise.all([
+          fetch("/api/admin/nurses"),
+          fetch("/api/admin/users")
+        ]);
+        if (nursesRes.ok) {
+          const data = await nursesRes.json();
+          setNurses(data);
+        }
+        if (usersRes.ok) {
+            const data: User[] = await usersRes.json();
+            setPatients(data.filter(u => u.role === 'patient'));
+        }
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch initial data.'});
       }
       setLoading(false);
     };
-    fetchNurses();
-  }, []);
+    fetchData();
+  }, [toast]);
 
   const handleAssignPatient = async () => {
     if (!selectedNurse || !assignPatientId) return;
     setActionLoading(true);
-    await fetch('/api/admin/nurses/assign-patient', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nurseId: selectedNurse.uid, patientId: assignPatientId })
-    });
-    toast({ title: 'Patient Assigned!', description: `Patient ${assignPatientId} assigned to ${selectedNurse.displayName}`});
-    setActionLoading(false);
-    setShowAssignModal(false);
-    setAssignPatientId('');
-    setSelectedNurse(null);
-    const res = await fetch("/api/admin/nurses");
-    if (res.ok) setNurses(await res.json());
+    try {
+        await fetch('/api/admin/nurses/assign-patient', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nurseId: selectedNurse.uid, patientId: assignPatientId })
+        });
+        toast({ title: 'Patient Assigned!', description: `Patient assigned to ${selectedNurse.displayName}`});
+        setShowAssignModal(false);
+        setAssignPatientId('');
+        setSelectedNurse(null);
+        const res = await fetch("/api/admin/nurses");
+        if (res.ok) setNurses(await res.json());
+    } catch(e) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to assign patient.' });
+    } finally {
+        setActionLoading(false);
+    }
   };
 
   const handleUpdateSchedule = async () => {
@@ -117,7 +136,7 @@ export default function NursesPage() {
                     {nurse.assignedPatients.length > 0 ? (
                       <ul className="list-disc ml-4">
                         {nurse.assignedPatients.map((pid) => (
-                          <li key={pid}>{pid}</li>
+                          <li key={pid}>{patients.find(p => p.id === pid)?.name || pid}</li>
                         ))}
                       </ul>
                     ) : (
@@ -150,18 +169,22 @@ export default function NursesPage() {
             <DialogContent className="glass-pane">
                 <DialogHeader>
                     <DialogTitle>Assign Patient to {selectedNurse?.displayName}</DialogTitle>
-                    <DialogDescription>Enter the ID of the patient to assign to this nurse.</DialogDescription>
+                    <DialogDescription>Select a patient from the list to assign to this nurse.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-2">
-                    <Label htmlFor="patientId">Patient ID</Label>
-                    <Input
-                        id="patientId"
-                        type="text"
-                        placeholder="Patient ID"
-                        value={assignPatientId}
-                        onChange={e => setAssignPatientId(e.target.value)}
-                        className="w-full"
-                    />
+                    <Label htmlFor="patientId">Patient</Label>
+                    <Select onValueChange={setAssignPatientId} value={assignPatientId}>
+                        <SelectTrigger id="patientId">
+                            <SelectValue placeholder="Select a patient..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {patients.map(patient => (
+                                <SelectItem key={patient.id} value={patient.id}>
+                                    {patient.name} ({patient.email})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setShowAssignModal(false)}>Cancel</Button>
