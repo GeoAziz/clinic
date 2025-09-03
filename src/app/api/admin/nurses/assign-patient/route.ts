@@ -11,10 +11,13 @@ export async function POST(request: Request) {
     if (!nurseId || !patientId) {
       return NextResponse.json({ error: 'Missing nurseId or patientId' }, { status: 400 });
     }
+    
     const nurseRef = adminDb.collection('nurses').doc(nurseId);
+    
     await nurseRef.update({
       assignedPatients: FieldValue.arrayUnion(patientId)
     });
+    
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error assigning patient:', error);

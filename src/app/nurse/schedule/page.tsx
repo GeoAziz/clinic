@@ -10,7 +10,6 @@ import { auth } from '@/lib/firebase/client';
 import { Badge } from '@/components/ui/badge';
 
 type ScheduleItem = {
-  id: string;
   date: string;
   shift: 'Morning' | 'Afternoon' | 'Night';
   department: string;
@@ -77,8 +76,8 @@ export default function NurseSchedulePage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {schedule.map(item => (
-                                <TableRow key={item.id}>
+                            {schedule.map((item, index) => (
+                                <TableRow key={index}>
                                     <TableCell>{new Date(item.date).toLocaleDateString()}</TableCell>
                                     <TableCell>
                                         <Badge variant={
@@ -89,7 +88,7 @@ export default function NurseSchedulePage() {
                                             {item.shift}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell>{item.department}</TableCell>
+                                    <TableCell>{item.department || 'N/A'}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

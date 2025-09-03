@@ -1,9 +1,18 @@
+
 "use client";
 import { useEffect, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, PlusCircle, Trash2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { User } from '../users/page';
 
 interface Nurse {
   uid: string;
@@ -17,6 +26,7 @@ interface Nurse {
 
 export default function NursesPage() {
   const [nurses, setNurses] = useState<Nurse[]>([]);
+  const [patients, setPatients] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedNurse, setSelectedNurse] = useState<Nurse | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -24,34 +34,52 @@ export default function NursesPage() {
   const [assignPatientId, setAssignPatientId] = useState('');
   const [newSchedule, setNewSchedule] = useState<{ date: string; shift: string }[]>([]);
   const [actionLoading, setActionLoading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const fetchNurses = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const res = await fetch("/api/admin/nurses");
-      if (res.ok) {
-        const data = await res.json();
-        setNurses(data);
+      try {
+        const [nursesRes, usersRes] = await Promise.all([
+          fetch("/api/admin/nurses"),
+          fetch("/api/admin/users")
+        ]);
+        if (nursesRes.ok) {
+          const data = await nursesRes.json();
+          setNurses(data);
+        }
+        if (usersRes.ok) {
+            const data: User[] = await usersRes.json();
+            setPatients(data.filter(u => u.role === 'patient'));
+        }
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch initial data.'});
       }
       setLoading(false);
     };
-    fetchNurses();
-  }, []);
+    fetchData();
+  }, [toast]);
 
   const handleAssignPatient = async () => {
     if (!selectedNurse || !assignPatientId) return;
     setActionLoading(true);
-    await fetch('/api/admin/nurses/assign-patient', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nurseId: selectedNurse.uid, patientId: assignPatientId })
-    });
-    setActionLoading(false);
-    setShowAssignModal(false);
-    setAssignPatientId('');
-    setSelectedNurse(null);
-    const res = await fetch("/api/admin/nurses");
-    if (res.ok) setNurses(await res.json());
+    try {
+        await fetch('/api/admin/nurses/assign-patient', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nurseId: selectedNurse.uid, patientId: assignPatientId })
+        });
+        toast({ title: 'Patient Assigned!', description: `Patient assigned to ${selectedNurse.displayName}`});
+        setShowAssignModal(false);
+        setAssignPatientId('');
+        setSelectedNurse(null);
+        const res = await fetch("/api/admin/nurses");
+        if (res.ok) setNurses(await res.json());
+    } catch(e) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to assign patient.' });
+    } finally {
+        setActionLoading(false);
+    }
   };
 
   const handleUpdateSchedule = async () => {
@@ -62,6 +90,7 @@ export default function NursesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nurseId: selectedNurse.uid, schedule: newSchedule })
     });
+    toast({ title: 'Schedule Updated!', description: `Schedule for ${selectedNurse.displayName} has been updated.`});
     setActionLoading(false);
     setShowScheduleModal(false);
     setNewSchedule([]);
@@ -78,9 +107,9 @@ export default function NursesPage() {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div>Loading nurses...</div>
+          <div className="flex items-center justify-center h-64"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>
         ) : nurses.length === 0 ? (
-          <div>No nurses found.</div>
+          <div className="text-center py-8">No nurses found.</div>
         ) : (
           <Table>
             <TableHeader>
@@ -101,13 +130,13 @@ export default function NursesPage() {
                   <TableCell>{nurse.email}</TableCell>
                   <TableCell>{nurse.department || "-"}</TableCell>
                   <TableCell>
-                    <Badge variant={nurse.status === "Active" ? "default" : "secondary"}>{nurse.status}</Badge>
+                    <Badge variant={nurse.status === "Active" ? "default" : "secondary"} className={nurse.status === "Active" ? 'bg-green-500/20 text-green-300 border-green-500/50' : ''}>{nurse.status}</Badge>
                   </TableCell>
                   <TableCell>
                     {nurse.assignedPatients.length > 0 ? (
                       <ul className="list-disc ml-4">
                         {nurse.assignedPatients.map((pid) => (
-                          <li key={pid}>{pid}</li>
+                          <li key={pid}>{patients.find(p => p.id === pid)?.name || pid}</li>
                         ))}
                       </ul>
                     ) : (
@@ -118,7 +147,7 @@ export default function NursesPage() {
                     {nurse.schedule && nurse.schedule.length > 0 ? (
                       <ul className="list-disc ml-4">
                         {nurse.schedule.map((s, idx) => (
-                          <li key={idx}>{s.date} ({s.shift})</li>
+                          <li key={idx}>{new Date(s.date).toLocaleDateString()} ({s.shift})</li>
                         ))}
                       </ul>
                     ) : (
@@ -127,66 +156,94 @@ export default function NursesPage() {
                   </TableCell>
                   <TableCell>
                     <Button size="sm" variant="outline" onClick={() => { setSelectedNurse(nurse); setShowAssignModal(true); }}>Assign Patient</Button>
-                    <Button size="sm" className="ml-2" variant="outline" onClick={() => { setSelectedNurse(nurse); setNewSchedule(nurse.schedule || []); setShowScheduleModal(true); }}>Edit Schedule</Button>
+                    <Button size="sm" className="ml-2" variant="outline" onClick={() => { setSelectedNurse(nurse); setNewSchedule(nurse.schedule?.map(s => ({...s, date: s.date.split('T')[0]})) || []); setShowScheduleModal(true); }}>Edit Schedule</Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
+        
+        {/* Assign Patient Dialog */}
+        <Dialog open={showAssignModal} onOpenChange={setShowAssignModal}>
+            <DialogContent className="glass-pane">
+                <DialogHeader>
+                    <DialogTitle>Assign Patient to {selectedNurse?.displayName}</DialogTitle>
+                    <DialogDescription>Select a patient from the list to assign to this nurse.</DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-2">
+                    <Label htmlFor="patientId">Patient</Label>
+                    <Select onValueChange={setAssignPatientId} value={assignPatientId}>
+                        <SelectTrigger id="patientId">
+                            <SelectValue placeholder="Select a patient..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {patients.map(patient => (
+                                <SelectItem key={patient.id} value={patient.id}>
+                                    {patient.name} ({patient.email})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowAssignModal(false)}>Cancel</Button>
+                    <Button onClick={handleAssignPatient} disabled={!assignPatientId || actionLoading}>
+                        {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Assign
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
-        {showAssignModal && selectedNurse && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <Card className="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle>Assign Patient to {selectedNurse.displayName}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <input
-                        type="text"
-                        placeholder="Patient ID"
-                        value={assignPatientId}
-                        onChange={e => setAssignPatientId(e.target.value)}
-                        className="w-full p-2 border rounded"
-                    />
-                    <div className="flex gap-2 justify-end">
-                        <Button variant="outline" onClick={() => setShowAssignModal(false)}>Cancel</Button>
-                        <Button onClick={handleAssignPatient} disabled={!assignPatientId || actionLoading}>
-                            {actionLoading ? 'Assigning...' : 'Assign'}
-                        </Button>
+        {/* Edit Schedule Dialog */}
+        <Dialog open={showScheduleModal} onOpenChange={setShowScheduleModal}>
+            <DialogContent className="glass-pane sm:max-w-xl">
+                 <DialogHeader>
+                   <DialogTitle className="font-headline text-2xl">Edit Schedule for {selectedNurse?.displayName}</DialogTitle>
+                   <DialogDescription>Add, remove, or modify shifts below.</DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="max-h-96 w-full pr-6">
+                    <div className="space-y-4 py-4">
+                        {newSchedule.map((s, idx) => (
+                        <div key={idx} className="flex items-end gap-2 p-2 rounded-md border border-primary/20 bg-background/50">
+                            <div className="grid flex-grow gap-1.5">
+                                <Label htmlFor={`date-${idx}`}>Date</Label>
+                                <Input id={`date-${idx}`} type="date" value={s.date} onChange={e => { const u = [...newSchedule]; u[idx].date = e.target.value; setNewSchedule(u); }}/>
+                            </div>
+                            <div className="grid flex-grow gap-1.5">
+                                <Label htmlFor={`shift-${idx}`}>Shift</Label>
+                                <Select value={s.shift} onValueChange={val => { const u = [...newSchedule]; u[idx].shift = val; setNewSchedule(u); }}>
+                                  <SelectTrigger id={`shift-${idx}`}>
+                                    <SelectValue placeholder="Select shift" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Morning">Morning</SelectItem>
+                                    <SelectItem value="Afternoon">Afternoon</SelectItem>
+                                    <SelectItem value="Night">Night</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                            </div>
+                            <Button size="icon" variant="destructive" onClick={() => setNewSchedule(newSchedule.filter((_, i) => i !== idx))}>
+                                <Trash2 className="h-4 w-4"/>
+                                <span className="sr-only">Remove shift</span>
+                            </Button>
+                        </div>
+                        ))}
                     </div>
-                </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {showScheduleModal && selectedNurse && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-             <Card className="w-full max-w-lg">
-                <CardHeader>
-                   <CardTitle>Edit Schedule for {selectedNurse.displayName}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 mb-4 max-h-64 overflow-y-auto p-1">
-                    {newSchedule.map((s, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <input type="date" value={s.date} onChange={e => { const u = [...newSchedule]; u[idx].date = e.target.value; setNewSchedule(u); }} className="p-2 border rounded"/>
-                        <input type="text" placeholder="Shift (e.g. Morning)" value={s.shift} onChange={e => { const u = [...newSchedule]; u[idx].shift = e.target.value; setNewSchedule(u); }} className="flex-grow p-2 border rounded"/>
-                        <Button size="sm" variant="destructive" onClick={() => setNewSchedule(newSchedule.filter((_, i) => i !== idx))}>Remove</Button>
-                      </div>
-                    ))}
-                  </div>
-                  <Button size="sm" variant="outline" onClick={() => setNewSchedule([...newSchedule, { date: '', shift: '' }])}>Add Shift</Button>
-                  <div className="flex gap-2 justify-end mt-4">
+                </ScrollArea>
+                <Button size="sm" variant="outline" onClick={() => setNewSchedule([...newSchedule, { date: '', shift: '' }])}>
+                    <PlusCircle className="mr-2"/> Add Shift
+                </Button>
+                <DialogFooter>
                     <Button variant="outline" onClick={() => { setShowScheduleModal(false); setNewSchedule([]); }}>Cancel</Button>
                     <Button onClick={handleUpdateSchedule} disabled={actionLoading}>
-                        {actionLoading ? 'Saving...' : 'Save Schedule'}
+                        {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Schedule
                     </Button>
-                  </div>
-                </CardContent>
-            </Card>
-          </div>
-        )}
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
