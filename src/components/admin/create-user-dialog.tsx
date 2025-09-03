@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -46,7 +45,8 @@ const initialState = {
 };
 
 
-function SubmitButton({ pending }: { pending: boolean }) {
+function SubmitButton() {
+  const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} className="btn-gradient" aria-busy={pending}>
       {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -60,6 +60,7 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
   const [state, formAction] = useActionState(createUser, initialState);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
   const {
     fields,
     errors,
@@ -72,10 +73,11 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
     setTouched,
   } = useUserForm(initialForm);
 
-  const [pending, setPending] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [lastResetLink, setLastResetLink] = useState<string | null>(null);
   const [lastEmail, setLastEmail] = useState<string | null>(null);
+  const { pending } = useFormStatus();
+
 
   useEffect(() => {
     if (!state) return;
@@ -85,7 +87,6 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
       setLastEmail(state.data.email);
       
       setIsOpen(false);
-      setPending(false);
       
       setTimeout(() => {
         setShowLinkModal(true);
@@ -98,7 +99,6 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
       }, 100);
       
     } else if (state?.message && state.error) {
-      setPending(false);
       toast({
         variant: 'destructive',
         title: '❌ Error Creating User',
@@ -115,21 +115,10 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
       setFields(initialForm);
       setErrors({});
       setTouched({});
-      setPending(false);
-      // Reset action state if needed
-      // state.message = '';
-      // state.error = { _form: [] };
+      formRef.current?.reset();
     }
   };
 
-  const handleClientSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!validate()) {
-      return;
-    }
-    setPending(true);
-    formAction(new FormData(e.currentTarget));
-  };
 
   return (
     <>
@@ -144,7 +133,7 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
               Create a new user profile. They will receive a password setup link.
             </DialogDescription>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleClientSubmit} aria-live="polite" autoComplete="off">
+          <form ref={formRef} action={formAction} className="space-y-4" aria-live="polite" autoComplete="off">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
               <Input
@@ -207,7 +196,7 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
               <DialogClose asChild>
                 <Button variant="outline" disabled={pending}>Cancel</Button>
               </DialogClose>
-              <SubmitButton pending={pending} />
+              <SubmitButton />
             </DialogFooter>
           </form>
       </DialogContent>

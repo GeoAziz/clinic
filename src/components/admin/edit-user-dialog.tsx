@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -22,6 +21,7 @@ import {
 } from '@/components/ui/select';
 
 import { useActionState, useEffect, useState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Loader2 } from 'lucide-react';
 import { updateUser } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +33,8 @@ const initialState = {
   message: '',
 };
 
-function SubmitButton({ pending }: { pending: boolean }) {
+function SubmitButton() {
+  const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} className="btn-gradient" aria-busy={pending}>
       {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -64,7 +65,7 @@ export function EditUserDialog({ user, onUserUpdated, isOpen, onOpenChange }: { 
     setTouched,
   } = useUserForm(initialForm);
 
-  const [pending, setPending] = useState(false);
+  const { pending } = useFormStatus();
   
   // When dialog opens with a new user, reset the form fields
   useEffect(() => {
@@ -94,7 +95,6 @@ export function EditUserDialog({ user, onUserUpdated, isOpen, onOpenChange }: { 
             description: state.message,
          });
       }
-      setPending(false);
     }
   }, [state, toast, onUserUpdated, onOpenChange]);
 
@@ -103,17 +103,7 @@ export function EditUserDialog({ user, onUserUpdated, isOpen, onOpenChange }: { 
     if (!open) {
       setErrors({});
       setTouched({});
-      setPending(false);
     }
-  };
-  
-  const handleClientSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!validate()) {
-      return;
-    }
-    setPending(true);
-    formAction(new FormData(e.currentTarget));
   };
 
   return (
@@ -125,7 +115,7 @@ export function EditUserDialog({ user, onUserUpdated, isOpen, onOpenChange }: { 
             Make changes to the user's profile here. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
-        <form className="space-y-4" onSubmit={handleClientSubmit} aria-live="polite" autoComplete="off">
+        <form action={formAction} className="space-y-4" aria-live="polite" autoComplete="off">
           <input type="hidden" name="uid" value={user.id} />
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
@@ -181,7 +171,7 @@ export function EditUserDialog({ user, onUserUpdated, isOpen, onOpenChange }: { 
             <DialogClose asChild>
               <Button variant="outline" disabled={pending}>Cancel</Button>
             </DialogClose>
-            <SubmitButton pending={pending} />
+            <SubmitButton />
           </DialogFooter>
         </form>
       </DialogContent>

@@ -1,4 +1,3 @@
-
 'use client';
 import {
   AlertDialog,
@@ -16,12 +15,14 @@ import { deactivateUser } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from '@/app/admin/users/page';
 import { Loader2 } from 'lucide-react';
+import { useFormStatus } from 'react-dom';
 
 const initialState = {
   message: '',
 };
 
-function SubmitButton({ pending }: { pending: boolean }) {
+function SubmitButton() {
+    const { pending } = useFormStatus();
     return (
         <AlertDialogAction asChild>
             <Button type="submit" disabled={pending} variant="destructive" aria-busy={pending}>
@@ -35,7 +36,7 @@ function SubmitButton({ pending }: { pending: boolean }) {
 export function DeactivateUserDialog({ user, onUserDeactivated, isOpen, onOpenChange }: { user: User; onUserDeactivated: () => void; isOpen: boolean; onOpenChange: (open: boolean) => void; }) {
   const [state, formAction] = useActionState(deactivateUser, initialState);
   const { toast } = useToast();
-  const [pending, setPending] = useState(false);
+  const { pending } = useFormStatus();
 
   useEffect(() => {
     if (state.message) {
@@ -53,19 +54,13 @@ export function DeactivateUserDialog({ user, onUserDeactivated, isOpen, onOpenCh
           description: state.message,
         });
       }
-      setPending(false);
     }
   }, [state, toast, onUserDeactivated, onOpenChange]);
-  
-  const handleFormAction = (formData: FormData) => {
-    setPending(true);
-    formAction(formData);
-  }
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent className="glass-pane">
-        <form action={handleFormAction}>
+        <form action={formAction}>
             <input type="hidden" name="uid" value={user.id} />
             <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -78,7 +73,7 @@ export function DeactivateUserDialog({ user, onUserDeactivated, isOpen, onOpenCh
             <AlertDialogCancel asChild>
                 <Button variant="outline" disabled={pending} onClick={() => onOpenChange(false)}>Cancel</Button>
             </AlertDialogCancel>
-            <SubmitButton pending={pending} />
+            <SubmitButton />
             </AlertDialogFooter>
         </form>
       </AlertDialogContent>
