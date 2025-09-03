@@ -1,17 +1,52 @@
 
+'use client';
+
+import { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-const patients = [
-  { id: 'p_1', name: 'John Doe', age: 34, lastVisit: '2024-10-28', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
-  { id: 'p_2', name: 'Jane Smith', age: 45, lastVisit: '2024-10-20', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704e' },
-  { id: 'p_3', name: 'Sam Wilson', age: 28, lastVisit: '2024-09-15', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704f' },
-];
+type Patient = {
+  id: string;
+  name: string;
+  age: number;
+  lastVisit: string;
+  avatar: string;
+};
 
 export default function DoctorPatientsPage() {
+    const [patients, setPatients] = useState<Patient[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const fetchPatients = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch('/api/doctor/patients');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch patients');
+                }
+                const data = await response.json();
+                setPatients(data);
+            } catch (error) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Could not fetch patient data.'
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPatients();
+    }, [toast]);
+
     return (
         <Card className="glass-pane w-full">
             <CardHeader>
@@ -19,6 +54,12 @@ export default function DoctorPatientsPage() {
                 <CardDescription>A list of patients under your care.</CardDescription>
             </CardHeader>
             <CardContent>
+                {loading ? (
+                     <div className="flex items-center justify-center h-64">
+                        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+                        <p className="ml-4 text-lg">Loading Patients...</p>
+                    </div>
+                ) : (
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -49,6 +90,7 @@ export default function DoctorPatientsPage() {
                         ))}
                     </TableBody>
                 </Table>
+                )}
             </CardContent>
         </Card>
     );
