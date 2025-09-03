@@ -1,5 +1,6 @@
 
 'use client';
+import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,7 @@ import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AddConsultationNotesDialog } from "@/components/doctor/add-consultation-notes-dialog";
 
 
 const appointments = [
@@ -16,9 +18,20 @@ const appointments = [
     { id: 'apt_3', patient: 'Sam Wilson', patientId: 'p_3', service: 'Consultation', date: '2024-10-29', time: '02:00 PM', status: 'Completed' },
 ];
 
+export type Appointment = typeof appointments[0];
+
 export default function DoctorAppointmentsPage() {
     const router = useRouter();
+    const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+
+    const handleOpenNotesDialog = (appointment: Appointment) => {
+        setSelectedAppointment(appointment);
+        setIsNotesDialogOpen(true);
+    }
+
     return (
+        <>
         <Card className="glass-pane w-full">
             <CardHeader>
                 <div className="flex justify-between items-center">
@@ -65,7 +78,9 @@ export default function DoctorAppointmentsPage() {
                                             <DropdownMenuItem onSelect={() => router.push(`/doctor/patients/${apt.patientId}`)}>
                                                 View Patient Chart
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem>Add Consultation Notes</DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={() => handleOpenNotesDialog(apt)}>
+                                                Add Consultation Notes
+                                            </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </TableCell>
@@ -75,5 +90,14 @@ export default function DoctorAppointmentsPage() {
                 </Table>
             </CardContent>
         </Card>
+
+        {selectedAppointment && (
+            <AddConsultationNotesDialog
+                appointment={selectedAppointment}
+                isOpen={isNotesDialogOpen}
+                onOpenChange={setIsNotesDialogOpen}
+            />
+        )}
+        </>
     );
 }
