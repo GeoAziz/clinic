@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -22,9 +22,11 @@ type Conversations = Record<string, Conversation>;
 export default function DoctorMessagesPage() {
     const [conversations, setConversations] = useState<Conversations>({});
     const [loading, setLoading] = useState(true);
+    const [sending, setSending] = useState(false);
     const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
     const [newMessage, setNewMessage] = useState('');
     const { toast } = useToast();
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
 
     const fetchConversations = async () => {
         setLoading(true);
@@ -33,8 +35,7 @@ export default function DoctorMessagesPage() {
             if (!res.ok) throw new Error('Failed to fetch conversations');
             const data = await res.json();
             setConversations(data);
-            // Select the first conversation by default
-            if (Object.keys(data).length > 0) {
+            if (Object.keys(data).length > 0 && !selectedConversation) {
                 setSelectedConversation(Object.keys(data)[0]);
             }
         } catch (error: any) {
@@ -52,34 +53,54 @@ export default function DoctorMessagesPage() {
         fetchConversations();
     }, []);
 
-    const handleSendMessage = (e: React.FormEvent) => {
+    useEffect(() => {
+        if (scrollAreaRef.current) {
+            scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight });
+        }
+    }, [conversations, selectedConversation]);
+
+    const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newMessage.trim() && selectedConversation) {
+        if (newMessage.trim() && selectedConversation && !sending) {
+            setSending(true);
             const newMsg: Message = { from: 'doctor', text: newMessage.trim() };
-            
-            // This is where you would call the API to send the message
-            console.log('Sending message to API:', {
-                conversationId: selectedConversation,
-                message: newMsg
-            });
 
-            // Optimistically update the UI
-            const updatedConvo = {
-                ...conversations[selectedConversation],
-                messages: [...conversations[selectedConversation].messages, newMsg]
-            };
-            setConversations(prev => ({
-                ...prev,
-                [selectedConversation]: updatedConvo
-            }));
+            try {
+                const response = await fetch('/api/doctor/messages/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        conversationId: selectedConversation,
+                        message: newMsg,
+                    }),
+                });
 
-            setNewMessage('');
+                if (!response.ok) {
+                    throw new Error('Failed to send message.');
+                }
+                
+                // Optimistically update UI
+                const updatedConvo = {
+                    ...conversations[selectedConversation],
+                    messages: [...conversations[selectedConversation].messages, newMsg]
+                };
+                setConversations(prev => ({
+                    ...prev,
+                    [selectedConversation]: updatedConvo
+                }));
 
-            // In a real implementation, you would then refetch or get confirmation from the server.
-            toast({
-                title: 'Message Sent',
-                description: 'Your message has been sent successfully.',
-            });
+                setNewMessage('');
+                await fetchConversations(); // Re-fetch to confirm state
+                
+            } catch (error: any) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error sending message',
+                    description: error.message,
+                });
+            } finally {
+                setSending(false);
+            }
         }
     };
     
@@ -132,7 +153,8 @@ export default function DoctorMessagesPage() {
                             <h3 className="font-headline text-lg">{conversations[selectedConversation].name}</h3>
                         </div>
                         
-                        <ScrollArea className="flex-grow p-6 space-y-4">
+                        <ScrollArea className="flex-grow p-6">
+                           <div className="space-y-4" ref={scrollAreaRef}>
                             {conversations[selectedConversation].messages.map((msg, index) => (
                                 <div key={index} className={cn(
                                     "flex items-end gap-2",
@@ -152,6 +174,7 @@ export default function DoctorMessagesPage() {
                                     </div>
                                 </div>
                             ))}
+                            </div>
                         </ScrollArea>
 
                         <div className="p-4 border-t border-primary/20">
@@ -161,9 +184,10 @@ export default function DoctorMessagesPage() {
                                     className="pr-12 h-12 glass-pane focus:neon-border" 
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
+                                    disabled={sending}
                                 />
-                                <Button type="submit" size="icon" className="absolute top-1/2 right-2 -translate-y-1/2 h-8 w-8 btn-gradient">
-                                    <Send />
+                                <Button type="submit" size="icon" className="absolute top-1/2 right-2 -translate-y-1/2 h-8 w-8 btn-gradient" disabled={sending}>
+                                    {sending ? <Loader2 className="animate-spin" /> : <Send />}
                                 </Button>
                             </form>
                         </div>
