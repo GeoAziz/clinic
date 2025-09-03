@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
+import { AddConsultationNotesDialog } from '@/components/doctor/add-consultation-notes-dialog';
+import type { Appointment } from '@/app/doctor/appointments/page';
 
 // Mock data - in a real app, this would be fetched from a database
 const patientsData: { [key: string]: any } = {
@@ -20,12 +23,25 @@ export default function PatientChartPage() {
     const params = useParams();
     const patientId = params.patientId as string;
     const patient = patientsData[patientId];
+    
+    const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
 
     if (!patient) {
         notFound();
     }
+    
+    const placeholderAppointment: Appointment = {
+        id: 'note_new',
+        patient: patient.name,
+        patientId: patient.id,
+        service: 'General Note',
+        date: new Date().toISOString().split('T')[0],
+        time: '',
+        status: 'N/A'
+    };
 
     return (
+        <>
         <div className="space-y-6">
              <Button asChild variant="outline">
                 <Link href="/doctor/patients" className="inline-flex items-center gap-2">
@@ -46,7 +62,7 @@ export default function PatientChartPage() {
                             {patient.age} years old &bull; Blood Type: {patient.details.bloodType} &bull; Last Visit: {patient.lastVisit}
                         </CardDescription>
                          <div className="mt-2 flex gap-2">
-                           <Button size="sm"><FileText className="mr-2"/>New Note</Button>
+                           <Button size="sm" onClick={() => setIsNotesDialogOpen(true)}><FileText className="mr-2"/>New Note</Button>
                            <Button size="sm" variant="secondary"><Calendar className="mr-2"/>New Appointment</Button>
                            <Button size="sm" variant="secondary"><MessageSquare className="mr-2"/>Send Message</Button>
                         </div>
@@ -117,5 +133,11 @@ export default function PatientChartPage() {
             </Card>
 
         </div>
+        <AddConsultationNotesDialog
+            appointment={placeholderAppointment}
+            isOpen={isNotesDialogOpen}
+            onOpenChange={setIsNotesDialogOpen}
+        />
+        </>
     );
 }
