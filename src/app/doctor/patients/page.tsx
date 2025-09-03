@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const patients = [
   { id: 'p_1', name: 'John Doe', age: 34, lastVisit: '2024-10-28', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
@@ -40,7 +41,9 @@ export default function DoctorPatientsPage() {
                                 <TableCell>{p.age}</TableCell>
                                 <TableCell>{p.lastVisit}</TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="outline" size="sm">View Chart</Button>
+                                    <Button variant="outline" size="sm" asChild>
+                                        <Link href={`/doctor/patients/${p.id}`}>View Chart</Link>
+                                    </Button>
                                 </TableCell>
                             </TableRow>
                         ))}
