@@ -19,7 +19,7 @@ interface Service {
 }
 
 interface Doctor {
-    id: number;
+    id: string; // Changed to string to match Firestore UID
     name: string;
     specialty: string;
     avatar: string;
@@ -31,12 +31,6 @@ const services: Service[] = [
   { id: 1, name: 'Consultation', icon: Stethoscope },
   { id: 2, name: 'Dental', icon: User },
   { id: 3, name: 'Lab Test', icon: User },
-];
-
-const allDoctors: Doctor[] = [
-  { id: 1, name: 'Dr. Evelyn Reed', specialty: 'Cybernetics', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', serviceIds: [1, 2] },
-  { id: 2, name: 'Dr. Kenji Tanaka', specialty: 'Genetics', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704e', serviceIds: [1, 3] },
-  { id: 3, name: 'Dr. Anya Sharma', specialty: 'Neurology', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704f', serviceIds: [1, 3] },
 ];
 
 const timeSlots = [ '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00' ];
@@ -58,6 +52,30 @@ export default function AppointmentBooking() {
   const formRef = useRef<HTMLFormElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const handledStateRef = useRef(false);
+  const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+        try {
+            setLoadingDoctors(true);
+            const res = await fetch('/api/doctors');
+            if (!res.ok) throw new Error('Failed to fetch doctors');
+            const data = await res.json();
+            setAllDoctors(data);
+        } catch (err: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Error fetching doctors',
+                description: err.message,
+            });
+        } finally {
+            setLoadingDoctors(false);
+        }
+    };
+    fetchDoctors();
+  }, [toast]);
+
 
   const handleServiceSelection = (service: Service) => {
     setSelectedService(service);
@@ -105,8 +123,8 @@ export default function AppointmentBooking() {
   useEffect(() => {
     if (state.message && !handledStateRef.current) {
       setIsSubmitting(false);
-       handledStateRef.current = true; // Mark state as handled
       if (state.message.includes('successfully')) {
+         handledStateRef.current = true; // Mark state as handled
         toast({
           title: '🚀 Appointment Confirmed!',
           description: 'See you soon.',
@@ -146,7 +164,7 @@ export default function AppointmentBooking() {
       </CardHeader>
       <form ref={formRef}>
       {selectedService && <input type="hidden" name="service" value={selectedService.name} />}
-      {selectedDoctor && <input type="hidden" name="doctorId" value={`doc_${selectedDoctor.id}`} />}
+      {selectedDoctor && <input type="hidden" name="doctorId" value={selectedDoctor.id} />}
       {selectedDoctor && <input type="hidden" name="doctorName" value={selectedDoctor.name} />}
       {date && <input type="hidden" name="date" value={date.toISOString().split('T')[0]} />}
       {selectedTime && <input type="hidden" name="time" value={selectedTime} />}
@@ -173,7 +191,11 @@ export default function AppointmentBooking() {
         {step === 2 && (
             <div>
                 <h3 className="mb-4 text-xl font-semibold text-center font-headline">2. Select Doctor</h3>
-                {availableDoctors.length > 0 ? (
+                 {loadingDoctors ? (
+                    <div className="flex items-center justify-center h-64">
+                        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+                    </div>
+                ) : availableDoctors.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {availableDoctors.map(doctor => (
                             <Card key={doctor.id} onClick={() => handleDoctorSelection(doctor)}
