@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { notFound } from "next/navigation";
 import { AddConsultationNotesDialog } from '@/components/doctor/add-consultation-notes-dialog';
 import type { Appointment } from '@/app/doctor/appointments/page';
@@ -20,9 +19,8 @@ const patientsData: { [key: string]: any } = {
   p_3: { id: 'p_3', name: 'Sam Wilson', age: 28, lastVisit: '2024-09-15', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704f', details: { bloodType: 'B+', allergies: 'Pollen', conditions: 'Asthma' }, upcomingAppointments: [{ date: '2024-11-20', time: '02:00 PM', service: 'Annual Checkup' }], labResults: [] },
 };
 
-export default function PatientChartPage() {
-    const params = useParams();
-    const patientId = params.patientId as string;
+export default function PatientChartPage({ params }: { params: { patientId: string } }) {
+    const patientId = params.patientId;
     const patient = patientsData[patientId];
     
     const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
@@ -33,12 +31,12 @@ export default function PatientChartPage() {
     
     const placeholderAppointment: Appointment = {
         id: 'note_new',
-        patient: patient.name,
+        patientName: patient.name,
         patientId: patient.id,
         service: 'General Note',
         date: new Date().toISOString().split('T')[0],
         time: '',
-        status: 'N/A'
+        status: 'Completed'
     };
 
     return (
