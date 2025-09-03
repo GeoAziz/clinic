@@ -1,18 +1,23 @@
 
+'use client';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 
 const appointments = [
-    { id: 'apt_1', patient: 'John Doe', service: 'Consultation', date: '2024-10-28', time: '10:00 AM', status: 'Confirmed' },
-    { id: 'apt_2', patient: 'Jane Smith', service: 'Follow-up', date: '2024-10-28', time: '11:30 AM', status: 'Confirmed' },
-    { id: 'apt_3', patient: 'Sam Wilson', service: 'Consultation', date: '2024-10-29', time: '02:00 PM', status: 'Completed' },
+    { id: 'apt_1', patient: 'John Doe', patientId: 'p_1', service: 'Consultation', date: '2024-10-28', time: '10:00 AM', status: 'Confirmed' },
+    { id: 'apt_2', patient: 'Jane Smith', patientId: 'p_2', service: 'Follow-up', date: '2024-10-28', time: '11:30 AM', status: 'Confirmed' },
+    { id: 'apt_3', patient: 'Sam Wilson', patientId: 'p_3', service: 'Consultation', date: '2024-10-29', time: '02:00 PM', status: 'Completed' },
 ];
 
 export default function DoctorAppointmentsPage() {
+    const router = useRouter();
     return (
         <Card className="glass-pane w-full">
             <CardHeader>
@@ -57,7 +62,9 @@ export default function DoctorAppointmentsPage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent>
-                                            <DropdownMenuItem>View Patient Chart</DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={() => router.push(`/doctor/patients/${apt.patientId}`)}>
+                                                View Patient Chart
+                                            </DropdownMenuItem>
                                             <DropdownMenuItem>Add Consultation Notes</DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
