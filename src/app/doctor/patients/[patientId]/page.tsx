@@ -74,7 +74,9 @@ export default function PatientChartPage() {
                                 {patient.upcomingAppointments.map((apt: any, i: number) => (
                                     <li key={i} className="flex justify-between items-center bg-background/50 p-2 rounded-md">
                                         <span>{apt.date} at {apt.time} - {apt.service}</span>
-                                        <Button size="sm" variant="ghost">Details</Button>
+                                        <Button size="sm" variant="ghost" asChild>
+                                          <Link href="/doctor/appointments">Details</Link>
+                                        </Button>
                                     </li>
                                 ))}
                             </ul>
