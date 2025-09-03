@@ -1,44 +1,39 @@
 
-import { NextResponse } from 'next/server';
 import { getAdmin } from '@/lib/firebase/admin';
-import { auth as clientAuth } from '@/lib/firebase/client'; // This is not ideal for backend
+import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import * as admin from 'firebase-admin';
 
-// Mock data until we can get the real logged-in user
-const MOCK_DOCTOR_ID = "some-doctor-uid";
-
-const initialConversations = {
-  p_1: {
-    name: 'John Doe',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d',
-    messages: [
-      { from: 'patient', text: 'Thanks for the quick response, doctor!' },
-      { from: 'doctor', text: 'You\'re welcome. Please follow the prescription and let me know if you have any questions.' },
-    ],
-  },
-  p_2: {
-    name: 'Jane Smith',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704e',
-    messages: [
-      { from: 'patient', text: 'Hi Dr. Reed, I wanted to follow up on my lab results.' },
-    ],
-  },
-};
+// In a real app, you would get this from the authenticated user's session.
+const MOCK_LOGGED_IN_DOCTOR_UID = "some-doctor-uid"; 
 
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    // In a real app, you'd get the doctor's UID from the authenticated session
-    // const token = request.headers.get('Authorization')?.split('Bearer ')[1];
-    // if (!token) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
-    // const { adminAuth } = await getAdmin();
-    // const decodedToken = await adminAuth.verifyIdToken(token);
-    // const doctorId = decodedToken.uid;
+    const { adminDb, adminAuth } = await getAdmin();
+    if (!adminDb || !adminAuth) {
+      return NextResponse.json({ error: 'Firebase Admin DB is not initialized.' }, { status: 500 });
+    }
     
-    // For now, we'll return mock data.
-    // The next step would be to query Firestore for conversations where doctorId === MOCK_DOCTOR_ID
-    return NextResponse.json(initialConversations);
+    // In a real implementation, you would verify the user's token
+    // and get their UID from there. For now, we use a mock UID.
+    const doctorId = MOCK_LOGGED_IN_DOCTOR_UID;
+
+    const convosSnapshot = await adminDb.collection('conversations')
+        .where('doctorId', '==', doctorId)
+        .get();
+
+    if (convosSnapshot.empty) {
+        console.log(`No conversations found for doctor UID: ${doctorId}`);
+        return NextResponse.json({});
+    }
+
+    const conversations: { [key: string]: any } = {};
+    convosSnapshot.forEach(doc => {
+        conversations[doc.id] = doc.data();
+    });
+    
+    return NextResponse.json(conversations);
 
   } catch (error) {
     console.error("Error fetching conversations: ", error);
