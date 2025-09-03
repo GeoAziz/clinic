@@ -174,7 +174,7 @@ const SignupForm = () => {
             <Select onValueChange={setProfileType} value={profileType}>
                 <SelectTrigger className="glass-pane focus:neon-border">
                     <SelectValue placeholder="Select profile type" />
-                </Trigger>
+                </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="online">Online Profile</SelectItem>
                     <SelectItem value="physical">Link Existing Hospital Record</SelectItem>
