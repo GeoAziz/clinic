@@ -19,6 +19,7 @@ import {
   Calendar,
   Users,
   LogOut,
+  User,
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -39,6 +40,7 @@ export default function ReceptionistLayout({
     { href: '/receptionist/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/receptionist/appointments', label: 'Appointments', icon: Calendar },
     { href: '/receptionist/patients', label: 'Patient Registration', icon: Users },
+    { href: '/receptionist/profile', label: 'Profile', icon: User },
   ];
   
   const handleLogout = async () => {
