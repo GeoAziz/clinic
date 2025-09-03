@@ -39,10 +39,23 @@ const initialForm: UserFormFields = {
   role: 'patient',
 };
 
-const initialState = {
-  error: { _form: [] as string[] },
-  data: undefined as ({ resetLink: string, email: string } | undefined),
+type ErrorFields = {
+  fullName?: string[];
+  email?: string[];
+  role?: string[];
+  _form?: string[];
+} | {
+  _form: string[];
+};
+
+const initialState: {
+  error: ErrorFields;
+  message: string;
+  data: any;
+} = {
+  error: { role: [], email: [], fullName: [], _form: [] },
   message: '',
+  data: undefined,
 };
 
 
@@ -194,7 +207,7 @@ export function CreateUserDialog({ onUserCreated, defaultRole, buttonText = "Add
                 )}
                 </div>
             )}
-            {state.error?._form && (
+            {state?.error && '_form' in state.error && Array.isArray(state.error._form) && state.error._form.length > 0 && (
               <p className="text-sm font-medium text-destructive">{state.error._form[0]}</p>
             )}
             <DialogFooter>

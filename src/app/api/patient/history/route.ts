@@ -4,19 +4,20 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 
 async function getUserIdFromToken(): Promise<string | null> {
-    const { adminAuth } = await getAdmin();
-    if (!adminAuth) return null;
-    const authHeader = headers().get('Authorization');
-    if (!authHeader) return null;
-    const token = authHeader.split('Bearer ')[1];
-    if (!token) return null;
-    try {
-        const decodedToken = await adminAuth.verifyIdToken(token);
-        return decodedToken.uid;
-    } catch (error) {
-        console.error("Error verifying token:", error);
-        return null;
-    }
+  const { adminAuth } = await getAdmin();
+  if (!adminAuth) return null;
+  const hdrs = await headers();
+  const authHeader = hdrs.get('Authorization');
+  if (!authHeader) return null;
+  const token = authHeader.split('Bearer ')[1];
+  if (!token) return null;
+  try {
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    return decodedToken.uid;
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    return null;
+  }
 }
 
 export async function GET() {
@@ -40,7 +41,7 @@ export async function GET() {
         return NextResponse.json([]);
     }
 
-    const labResults = labResultsSnapshot.docs.map(doc => ({
+    const labResults = labResultsSnapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => ({
         id: doc.id,
         ...doc.data()
     }));
