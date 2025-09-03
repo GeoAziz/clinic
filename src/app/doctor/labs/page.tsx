@@ -1,12 +1,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LabReportDialog } from '@/components/doctor/lab-report-dialog';
+import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 type LabResult = { 
   id: string;
@@ -17,18 +19,37 @@ type LabResult = {
   report: string;
 };
 
-const labResults: LabResult[] = [
-    { id: 'lab_1', patientName: 'John Doe', testName: 'Complete Blood Count', date: '2024-10-28', status: 'Requires Review', report: 'CBC shows slightly elevated white blood cell count, suggesting a possible infection. Platelets and hemoglobin are within normal ranges.' },
-    { id: 'lab_2', patientName: 'Jane Smith', testName: 'Lipid Panel', date: '2024-10-28', status: 'Completed', report: 'Total cholesterol is 190 mg/dL, LDL is 110 mg/dL, HDL is 60 mg/dL. All values are within the desirable range.' },
-    { id: 'lab_3', patientName: 'Sam Wilson', testName: 'Thyroid Panel', date: '2024-10-27', status: 'Completed', report: 'TSH level is 2.5 mIU/L. T3 and T4 levels are normal. Thyroid function appears normal.' },
-    { id: 'lab_4', patientName: 'Bucky Barnes', testName: 'Glucose Tolerance Test', date: '2024-10-26', status: 'Pending', report: 'Results are pending analysis.' },
-];
-
 export default function DoctorLabsPage() {
-    const [results, setResults] = useState<LabResult[]>(labResults);
+    const [results, setResults] = useState<LabResult[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { toast } = useToast();
     const [sortConfig, setSortConfig] = useState<{ key: keyof LabResult, direction: 'asc' | 'desc' } | null>(null);
     const [selectedResult, setSelectedResult] = useState<LabResult | null>(null);
     const [isReportOpen, setIsReportOpen] = useState(false);
+
+    useEffect(() => {
+        const fetchLabs = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch('/api/doctor/labs');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch lab results');
+                }
+                const data = await response.json();
+                setResults(data);
+            } catch (error) {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Could not fetch lab results data.'
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchLabs();
+    }, [toast]);
 
     const sortedResults = [...results].sort((a, b) => {
         if (!sortConfig) return 0;
@@ -63,6 +84,16 @@ export default function DoctorLabsPage() {
                     <CardDescription>Review and manage patient lab results.</CardDescription>
                 </CardHeader>
                 <CardContent>
+                    {loading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+                            <p className="ml-4 text-lg">Loading Lab Results...</p>
+                        </div>
+                    ) : results.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                           No lab results found for your patients.
+                       </div>
+                    ) : (
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -111,6 +142,7 @@ export default function DoctorLabsPage() {
                             ))}
                         </TableBody>
                     </Table>
+                    )}
                 </CardContent>
             </Card>
             {selectedResult && (
