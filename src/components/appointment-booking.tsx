@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useActionState, useRef, useEffect } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -40,6 +41,16 @@ const initialState = {
   error: null,
 };
 
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" className="btn-gradient animate-pulse-glow" disabled={pending}>
+        {pending ? <Loader2 className="mr-2 animate-spin" /> : <Check className="mr-2"/>}
+        Confirm Booking
+    </Button>
+  )
+}
+
 
 export default function AppointmentBooking() {
   const [state, formAction] = useActionState(createAppointment, initialState);
@@ -50,7 +61,6 @@ export default function AppointmentBooking() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const handledStateRef = useRef(false);
   const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
   const [loadingDoctors, setLoadingDoctors] = useState(true);
@@ -99,48 +109,36 @@ export default function AppointmentBooking() {
         toast({ variant: 'destructive', title: 'Error', description: 'Please select a date and time.' });
         return;
     }
+    handledStateRef.current = false;
     setStep(s => s + 1);
   };
 
-  const handlePrevStep = () => setStep(s => s - 1);
-  
-  const handleBooking = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    handledStateRef.current = false; // Reset for the new submission
-    
-    if (!selectedService || !selectedDoctor || !date || !selectedTime) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Missing appointment details.' });
-      setIsSubmitting(false);
-      return;
-    }
-    
-    const formData = new FormData(formRef.current!);
-    formAction(formData);
-  };
+  const handlePrevStep = () => {
+    handledStateRef.current = false;
+    setStep(s => s - 1);
+  }
   
     // Effect to handle server action result
   useEffect(() => {
     if (state.message && !handledStateRef.current) {
-      setIsSubmitting(false);
-      if (state.message.includes('successfully')) {
-         handledStateRef.current = true; // Mark state as handled
-        toast({
-          title: '🚀 Appointment Confirmed!',
-          description: 'See you soon.',
-        });
-        setStep(1);
-        setSelectedService(null);
-        setSelectedDoctor(null);
-        setDate(new Date());
-        setSelectedTime(null);
-        formRef.current?.reset();
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Booking Failed',
-          description: state.message,
-        });
+        handledStateRef.current = true; // Mark state as handled for this submission cycle
+        if (state.message.includes('successfully')) {
+            toast({
+            title: '🚀 Appointment Confirmed!',
+            description: 'See you soon.',
+            });
+            setStep(1);
+            setSelectedService(null);
+            setSelectedDoctor(null);
+            setDate(new Date());
+            setSelectedTime(null);
+            formRef.current?.reset();
+        } else {
+            toast({
+            variant: 'destructive',
+            title: 'Booking Failed',
+            description: state.message,
+            });
       }
     }
   }, [state, toast]);
@@ -162,7 +160,7 @@ export default function AppointmentBooking() {
             <div className="bg-primary h-1 rounded-full transition-all duration-300" style={{width: `${(step/4)*100}%`}}></div>
         </div>
       </CardHeader>
-      <form ref={formRef}>
+      <form ref={formRef} action={formAction}>
       {selectedService && <input type="hidden" name="service" value={selectedService.name} />}
       {selectedDoctor && <input type="hidden" name="doctorId" value={selectedDoctor.id} />}
       {selectedDoctor && <input type="hidden" name="doctorName" value={selectedDoctor.name} />}
@@ -253,13 +251,13 @@ export default function AppointmentBooking() {
 
       </CardContent>
       <CardFooter className="flex justify-between">
-        {step > 1 && (
+        {step > 1 ? (
             <Button variant="outline" onClick={handlePrevStep} className="neon-border" type="button">
                 <ArrowLeft className="mr-2"/>
                 Back
             </Button>
-        )}
-        <div className="flex-grow"></div>
+        ) : (<div></div>)}
+        
         {step < 4 && (
             <Button onClick={handleNextStep} className="btn-gradient animate-pulse-glow" type="button">
                 Next
@@ -267,10 +265,7 @@ export default function AppointmentBooking() {
             </Button>
         )}
         {step === 4 && (
-             <Button onClick={handleBooking} className="btn-gradient animate-pulse-glow" disabled={isSubmitting} type="submit">
-                {isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <Check className="mr-2"/>}
-                Confirm Booking
-            </Button>
+            <SubmitButton />
         )}
       </CardFooter>
     </form>
