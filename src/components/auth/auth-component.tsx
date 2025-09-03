@@ -120,8 +120,7 @@ const SignupForm = () => {
 
             toast({ title: 'Signup Successful!', description: 'Your account has been created.' });
             router.push('/patient/dashboard');
-
-        } catch (error: any) => {
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Signup Failed', description: error.message });
         } finally {
             setIsLoading(false);
