@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
-import { useActionState, useRef } from 'react';
+import { useState, useActionState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -110,7 +109,7 @@ export default function AppointmentBooking() {
   };
   
     // Effect to handle server action result
-  React.useEffect(() => {
+  useEffect(() => {
     if (state.message) {
       setIsSubmitting(false);
       if (state.message.includes('successfully')) {
