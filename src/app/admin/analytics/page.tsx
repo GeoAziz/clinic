@@ -3,18 +3,28 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { Appointment } from '../appointments/page';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+
 
 interface ChartData {
     name: string;
     count: number;
 }
 
+const chartConfig = {
+  count: {
+    label: "Appointments",
+    color: "hsl(var(--chart-1))",
+  },
+} satisfies ChartConfig
+
 export default function AnalyticsPage() {
     const [serviceData, setServiceData] = useState<ChartData[]>([]);
+    const [doctorLoadData, setDoctorLoadData] = useState<ChartData[]>([]);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
 
@@ -26,17 +36,30 @@ export default function AnalyticsPage() {
                 if (!res.ok) throw new Error('Failed to fetch appointment data');
                 const appointments: Appointment[] = await res.json();
                 
+                // Process service popularity data
                 const serviceCounts = appointments.reduce((acc, apt) => {
                     acc[apt.service] = (acc[apt.service] || 0) + 1;
                     return acc;
                 }, {} as Record<string, number>);
 
-                const chartData = Object.entries(serviceCounts).map(([name, count]) => ({
+                const serviceChartData = Object.entries(serviceCounts).map(([name, count]) => ({
                     name,
                     count
                 }));
-                
-                setServiceData(chartData);
+                setServiceData(serviceChartData);
+
+                // Process doctor load data
+                const doctorCounts = appointments.reduce((acc, apt) => {
+                    acc[apt.doctorName] = (acc[apt.doctorName] || 0) + 1;
+                    return acc;
+                }, {} as Record<string, number>);
+
+                const doctorChartData = Object.entries(doctorCounts).map(([name, count]) => ({
+                    name,
+                    count
+                }));
+                setDoctorLoadData(doctorChartData);
+
 
             } catch (err: any) {
                 toast({
@@ -60,44 +83,74 @@ export default function AnalyticsPage() {
                 </CardHeader>
             </Card>
 
-            <Card className="glass-pane">
-                <CardHeader>
-                    <CardTitle>Service Popularity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {loading ? (
-                         <div className="flex items-center justify-center h-[300px]">
-                            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                        </div>
-                    ) : serviceData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={serviceData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
-                                <XAxis dataKey="name" stroke="hsl(var(--foreground))" fontSize={12} />
-                                <YAxis stroke="hsl(var(--foreground))" fontSize={12} />
-                                <Tooltip
-                                    contentStyle={{
-                                      backgroundColor: 'hsl(var(--background) / 0.8)',
-                                      borderColor: 'hsl(var(--border))'
-                                    }}
-                                    cursor={{ fill: 'hsl(var(--primary) / 0.1)' }}
-                                />
-                                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    ) : (
-                        <p className="text-muted-foreground text-center h-[300px] flex items-center justify-center">No appointment data available to display analytics.</p>
-                    )}
-                </CardContent>
-            </Card>
-             <Card className="glass-pane">
-                <CardHeader>
-                    <CardTitle>Doctor Load</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground">Doctor load chart coming soon.</p>
-                </CardContent>
-            </Card>
+             <div className="grid md:grid-cols-2 gap-6">
+                <Card className="glass-pane">
+                    <CardHeader>
+                        <CardTitle>Service Popularity</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {loading ? (
+                            <div className="flex items-center justify-center h-[300px]">
+                                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+                            </div>
+                        ) : serviceData.length > 0 ? (
+                           <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+                                <BarChart accessibilityLayer data={serviceData}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis
+                                        dataKey="name"
+                                        tickLine={false}
+                                        tickMargin={10}
+                                        axisLine={false}
+                                        tickFormatter={(value) => value.slice(0, 3)}
+                                    />
+                                    <ChartTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent indicator="dot" />}
+                                    />
+                                    <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+                                </BarChart>
+                            </ChartContainer>
+                        ) : (
+                            <p className="text-muted-foreground text-center h-[300px] flex items-center justify-center">No appointment data available to display analytics.</p>
+                        )}
+                    </CardContent>
+                </Card>
+                <Card className="glass-pane">
+                    <CardHeader>
+                        <CardTitle>Doctor Load</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {loading ? (
+                            <div className="flex items-center justify-center h-[300px]">
+                                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+                            </div>
+                        ) : doctorLoadData.length > 0 ? (
+                            <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+                                <BarChart accessibilityLayer data={doctorLoadData}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis
+                                        dataKey="name"
+                                        tickLine={false}
+                                        tickMargin={10}
+                                        axisLine={false}
+                                        tickFormatter={(value) => value.split(' ').pop()} // Show last name
+                                    />
+                                    <YAxis />
+                                    <ChartTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent indicator="dot" />}
+                                    />
+                                     <Legend />
+                                    <Bar dataKey="count" fill="var(--color-count)" radius={4} name="Appointments" />
+                                </BarChart>
+                            </ChartContainer>
+                        ) : (
+                            <p className="text-muted-foreground text-center h-[300px] flex items-center justify-center">No doctor data available to display analytics.</p>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
