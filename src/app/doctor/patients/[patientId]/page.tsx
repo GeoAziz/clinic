@@ -63,7 +63,9 @@ export default function PatientChartPage() {
                         </CardDescription>
                          <div className="mt-2 flex gap-2">
                            <Button size="sm" onClick={() => setIsNotesDialogOpen(true)}><FileText className="mr-2"/>New Note</Button>
-                           <Button size="sm" variant="secondary"><Calendar className="mr-2"/>New Appointment</Button>
+                           <Button size="sm" variant="secondary" asChild>
+                               <Link href="/book"><Calendar className="mr-2"/>New Appointment</Link>
+                           </Button>
                            <Button size="sm" variant="secondary"><MessageSquare className="mr-2"/>Send Message</Button>
                         </div>
                     </div>
