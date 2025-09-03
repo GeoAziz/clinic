@@ -41,6 +41,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             <Link href="/services" className="font-semibold laser-underline">Services</Link>
             <Link href="/doctors" className="font-semibold laser-underline">Doctors</Link>
             <Link href="/contact" className="font-semibold laser-underline">Contact</Link>
+             <Link href="/ai-check" className="font-semibold laser-underline text-accent">AI Check</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" className="neon-border">
