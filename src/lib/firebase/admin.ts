@@ -19,8 +19,16 @@ export function getAdmin() {
   }
   if (!admin.apps.length) {
     try {
-      const serviceAccountPath = join(process.cwd(), 'serviceAccountKey.json');
-      const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+      let serviceAccount;
+      if (process.env.SERVICE_ACCOUNT_KEY_JSON) {
+        // In Vercel/production, use the environment variable
+        serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_KEY_JSON);
+      } else {
+        // For local development, read the file
+        const serviceAccountPath = join(process.cwd(), 'serviceAccountKey.json');
+        serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+      }
+      
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
